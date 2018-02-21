@@ -22,51 +22,50 @@ int main(int argc, char *argv[])
     /* Connect to message queue. */
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
 
-    /* Hold next thing in queue. */
+    /* Container for messages. */
     struct put_msgbuf request;
-
     struct msqid_ds buf;
-    int rc, num_messages;
-    rc = msgctl(msq_id, IPC_STAT, &buf);
-    num_messages = buf.msg_qnum;
+    int rc;
 
-    bool stop = false;
+    bool dying = false;
 
-    FILE *fp;
+    sleep(2);
 
-    fp = fopen("hello-world-test.txt", "a");
-    fprintf(fp, "Hello, World!\n");
-    fclose(fp);
+    while (true) {
+        msgctl(msq_id, IPC_STAT, &buf);
+        printf("Items in Queue: %i\n", buf.msg_qnum);
 
+        sleep(1);
 
-    fp = fopen("master_node_record.txt", "a");
+        if (buf.msg_qnum > 0) {
+            printf("Popping off queue.\n");
 
-    while (num_messages == 0) {
-        while (num_messages > 0) {
             /* Grab from queue. */
-            msgrcv(msq_id, &request, sizeof(struct put_msgbuf), mtype_put, 0);
+            rc = msgrcv(msq_id, &request, sizeof(struct put_msgbuf), mtype_put, 0);
 
-            if (request.mtype == mtype_quit) {
-                stop = true;
+            /* Error Checking */
+            if (rc < 0) {
+                perror( strerror(errno) );
+                printf("msgrcv failed, rc = %d\n", rc);
+                return EXIT_FAILURE;
+            }
+
+            /* Check for death signal. */
+            if (request.mtype == mtype_kill_master) {
+                dying = true;
                 break;
             }
 
-            int vec_id = request.vector.vec_id;
-            unsigned long long vec = request.vector.vec;
-
-            fprintf(fp, "%i := %llx\n", vec_id, vec);
-
-            rc = msgctl(msq_id, IPC_STAT, &buf);
-            num_messages = buf.msg_qnum;
+            printf("%i := %llx\n", request.vector.vec_id, request.vector.vec);
         }
 
-        if (stop) break;
-
-        rc = msgctl(msq_id, IPC_STAT, &buf);
-        num_messages = buf.msg_qnum;
+        if (dying) break;
     }
 
-    fclose(fp);
+    if (dying) {
+        struct put_msgbuf signal = {mtype_master_dying, {0,0} };
+        msgsnd(msq_id, &signal, sizeof(struct put_msgbuf), 0);
+    }
 
     //  while (queue is empty)
     //      while (queue is not empty)

@@ -15,16 +15,18 @@ static key_t MSQ_KEY = 440440;
 static int MSQ_PERMISSIONS = 0666;
 
 /* Message types */
-static int mtype_put = 1;
-static int mtype_kill_master = 98;
-static int mtype_master_dying = 99;
+static long mtype_put = 1;
+static long mtype_kill_master = 98;
+static long mtype_master_dying = 99;
 
-struct put_msgbuf {
+typedef struct assigned_vector {
+    int vec_id;
+    unsigned long long vec;
+} assigned_vector;
+
+typedef struct put_msgbuf {
     long mtype;
-    struct put_request {
-        int vec_id;
-        unsigned long long vec;
-    } vector;
-};
+    assigned_vector vector;
+} put_msgbuf;
 
 #endif /* MESSAGES_H */
