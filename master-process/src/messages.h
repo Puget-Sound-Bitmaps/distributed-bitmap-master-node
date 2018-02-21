@@ -15,8 +15,9 @@ static key_t MSQ_KEY = 440440;
 static int MSQ_PERMISSIONS = 0666;
 
 /* Message types */
-static int mtype_quit = 666;
 static int mtype_put = 1;
+static int mtype_kill_master = 98;
+static int mtype_master_dying = 99;
 
 struct put_msgbuf {
     long mtype;

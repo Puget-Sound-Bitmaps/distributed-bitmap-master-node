@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
             exit(EXIT_FAILURE);
         case 0:
             master_exists = true;
-            char *argv[] = {MASTER_EXECUTABLE, REPLICATION_FACTOR};
+            char *argv[3] = {MASTER_EXECUTABLE, REPLICATION_FACTOR};
             int master_exit_status = execv(MASTER_EXECUTABLE, argv);
             exit(master_exit_status);
         default:
@@ -54,14 +54,13 @@ int main(int argc, char *argv[])
     /* Destroy message queue. */
     msgctl(msq_id, IPC_RMID, NULL);
     /* Reap master. */
-    int master_result;
-    waitpid(master_pid, &master_result, 0);
+    int master_result = 0;
+    wait(&master_result);
     printf("Master returned: %i\n", master_result);
 
     printf("Stopping DBMS...\n");
     return EXIT_SUCCESS;
 }
-
 
 int put_vector(int queue_id, int vec_id, unsigned long long vec)
 {
@@ -69,4 +68,3 @@ int put_vector(int queue_id, int vec_id, unsigned long long vec)
     msgsnd(queue_id, &put, sizeof(struct put_msgbuf), 0);
     return EXIT_SUCCESS;
 }
-
