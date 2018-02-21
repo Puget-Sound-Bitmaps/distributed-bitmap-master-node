@@ -36,3 +36,4 @@ $(DBMS): $(DBMS_DEPS)
 
 test:
 	@echo "Testing..."
+	@cd bin && ./dbms
