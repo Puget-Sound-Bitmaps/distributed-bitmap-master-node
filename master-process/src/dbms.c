@@ -70,10 +70,10 @@ int main(int argc, char *argv[])
 
 int put_vector(int queue_id, int vec_id, unsigned long long vec)
 {
-    put_msgbuf *put = (void *) malloc(sizeof(put_msgbuf));
+    put_msgbuf *put = (struct put_msgbuf *) malloc(sizeof(struct put_msgbuf));
     put->mtype = mtype_put;
     put->vector = (assigned_vector) { vec_id, vec };
-    printf("SEND: data at %llu\n", &put);
-    msgsnd(queue_id, &put, sizeof(put_msgbuf), 0);
+    printf("SEND: data at %llu\n", put);
+    msgsnd(queue_id, put, sizeof(put_msgbuf), 0);
     return EXIT_SUCCESS;
 }

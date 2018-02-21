@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
 
     /* Container for messages. */
-    struct put_msgbuf request;
+    struct put_msgbuf *request;
     struct msqid_ds buf;
     int rc;
 
@@ -40,8 +40,10 @@ int main(int argc, char *argv[])
         if (buf.msg_qnum > 0) {
             printf("Popping off queue.\n");
 
+            request = (struct put_msgbuf *) malloc(sizeof(struct put_msgbuf));
+
             /* Grab from queue. */
-            rc = msgrcv(msq_id, &request, sizeof(struct put_msgbuf), mtype_put, 0);
+            rc = msgrcv(msq_id, request, sizeof(struct put_msgbuf), 0, 0);
 
             /* Error Checking */
             if (rc < 0) {
@@ -51,12 +53,12 @@ int main(int argc, char *argv[])
             }
 
             /* Check for death signal. */
-            if (request.mtype == mtype_kill_master) {
+            if (request->mtype == mtype_kill_master) {
                 dying = true;
                 break;
             }
 
-            printf("%i := %llx\n", request.vector.vec_id, request.vector.vec);
+            printf("%i := 0x%llx\n", request->vector.vec_id, request->vector.vec);
         }
 
         if (dying) break;
