@@ -4,7 +4,7 @@ SRC := src
 TST := tst
 
 # Compilation Flags
-CFLAGS := -Wall
+CFLAGS := -Wall -Wextra -pedantic
 
 # Master Process
 MASTER := $(BIN)/master
