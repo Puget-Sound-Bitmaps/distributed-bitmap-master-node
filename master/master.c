@@ -21,12 +21,12 @@
  * Source: https://en.wikipedia.org/wiki/Qsort
  */
 int compare_machine_vec_tuple(const void *p, const void *q) {
-    unsigned int **x = (const unsigned int **)p;
-    unsigned int **y = (const unsigned int **)q;
+    unsigned int x = **((const unsigned int **)p);
+    unsigned int y = **((const unsigned int **)q);
 
-    if (**x < **y)
+    if (x < y)
         return -1;
-    else if (**x > **y)
+    else if (x > y)
         return 1;
 
     return 0;
@@ -46,7 +46,6 @@ int main(int argc, char *argv[])
         return 1;
     }
     */
-
     /* Connect to message queue. */
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
     /* Container for messages. */
@@ -69,7 +68,6 @@ int main(int argc, char *argv[])
         insert_cache(chash_table, cptr);
      }
 
-
     while (true) {
         msgctl(msq_id, IPC_STAT, &buf);
 
@@ -77,7 +75,7 @@ int main(int argc, char *argv[])
 
 
             request = (struct msgbuf *) malloc(sizeof(msgbuf));
-
+//            printf("allocated request\n");
             /* Grab from queue. */
             rc = msgrcv(msq_id, request, sizeof(msgbuf), 0, 0);
 
@@ -119,13 +117,13 @@ int main(int argc, char *argv[])
             }
             else if (request->mtype == mtype_range_query) {
                 range_query_contents contents = request->range_query;
-                #define NUM_SLAVES 3
                 int i;
                 for (i = 0; i < contents.num_ranges; i++) {
                     unsigned int *range = contents.ranges[i];
                     vec_id_t j;
                     unsigned int **machine_vec_ptrs = (unsigned int **)
                         malloc(sizeof(int *) * (range[1] - range[0] + 1));
+                    //printf("Allocated tuples\n");
                     for (j = range[0]; j <= range[1]; j++) {
                         unsigned int *tuple = (unsigned int *)
                             malloc(sizeof(unsigned int) * 2);
@@ -137,10 +135,6 @@ int main(int argc, char *argv[])
 
                     qsort(machine_vec_ptrs, range[1] - range[0], sizeof(unsigned int) * 2,
                         compare_machine_vec_tuple);
-                    printf("Printing tuples\n");
-                    for (j = 0; j < range[1] - range[0]; j++) {
-                        printf("Machine = %d, vector_id = %d\n", machine_vec_ptrs[j][0], machine_vec_ptrs[j][1]);
-                    }
                 }
 
                 /* TODO: Call Jahrme function here */

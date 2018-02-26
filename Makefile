@@ -18,4 +18,4 @@ clean:
 
 .master: tree_map.o
 	@echo "Compiling Master"
-	@cd master && gcc ../$(BIN)/tree_map.o master.c -o ../$(BIN)/master -lssl -lcrypto
+	@cd master && gcc ../$(BIN)/tree_map.o master.c -o ../$(BIN)/master -lssl -lcrypto -lm
