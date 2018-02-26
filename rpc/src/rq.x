@@ -23,14 +23,15 @@ enum query_op {AND, OR};
 struct rq_pipe {
     unsigned int vec_id;
     query_op op;
+    char *next_machine;
     struct rq_pipe *next;
 };
 
-program REMOTE_QUERY_ROOT {
-    version REMOTE_QUERY_ROOT_V1 {
-        int RQ_ROOT(struct rq_root) = 1;
+program REMOTE_QUERY_PIPE {
+    version REMOTE_QUERY_PIPE_V1 {
+        int RQ_PIPE(struct rq_pipe *) = 1;
     } = 1;
-} = 0x00000001;
+} = 0x20;
 
 /**
  *  Root Query
@@ -58,12 +59,12 @@ program REMOTE_QUERY_ROOT {
  *  Regardless, there will still be an array of each.
  */
 struct rq_root {
-    struct rq_pipe pipes<>;
-    query_op ops<>;
+    struct rq_pipe *pipes<>;
+    query_op *ops<>;
 };
 
-program REMOTE_QUERY_PIPE {
-    version REMOTE_QUERY_PIPE_V1 {
-        int RQ_PIPE(struct rq_pipe) = 1;
+program REMOTE_QUERY_ROOT {
+    version REMOTE_QUERY_ROOT_V1 {
+        int RQ_ROOT(struct rq_root *) = 1;
     } = 1;
-} = 0x00000002;
+} = 0x10;
