@@ -5,11 +5,11 @@
 #define DB_CAPSTONE_2_ADDR "10.250.94.56"
 #define DB_CAPSTONE_3_ADDR "10.250.94.72"
 
-static char SLAVE_ADDR[3][32] = {
-    DB_CAPSTONE_1_ADDR,
+#define NUM_SLAVES 2
+
+static char SLAVE_ADDR[NUM_SLAVES][32] = {
     DB_CAPSTONE_2_ADDR,
     DB_CAPSTONE_3_ADDR
 };
-#define NUM_SLAVES 3
 
 #endif

@@ -26,19 +26,16 @@ int main(int argc, char *argv[])
 
     bool master_exists = false;
     pid_t master_pid = -1;
-    printf("Ready to fork...\n");
     if (!master_exists) switch (master_pid = fork()) {
         case -1:
-            printf("Master process creation failed.\n");
             perror("fork");
             exit(EXIT_FAILURE);
         case 0:
-            printf("Becomming master...\n");
-            char *argv[3] = {MASTER_EXECUTABLE, REPLICATION_FACTOR};
+            printf("Starting master\n");
+            char *argv[3] = {MASTER_EXECUTABLE, REPLICATION_FACTOR, NULL};
             int master_exit_status = execv(MASTER_EXECUTABLE, argv);
             exit(master_exit_status);
         default:
-            printf("Resuming DBMS role...\n");
             master_exists = true;
     }
 
@@ -47,11 +44,12 @@ int main(int argc, char *argv[])
     /* Create message queue. */
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
 
-    printf("Ready to send vectors...\n");
     // put_vector(msq_id, 1, 0x00ab);
     // put_vector(msq_id, 2, 0x10c0);
     // put_vector(msq_id, 3, 0x0781);
     // put_vector(msq_id, 4, 0x99ff);
+    char range[] = "R:[0,9]&[10,15]&[20,27]";
+    range_query(msq_id, range);
 
     int master_result = 0;
     wait(&master_result);
@@ -64,7 +62,6 @@ int main(int argc, char *argv[])
 
     printf("Master returned: %i\n", master_result);
 
-    printf("Stopping DBMS...\n");
     return EXIT_SUCCESS;
 }
 
@@ -125,21 +122,31 @@ int range_query(int queue_id, char *query_str)
         bounds[0] = r1;
         bounds[1] = r2;
         ranges[num_ranges] = bounds;
+        printf("Adding range %d to %d\n", r1, r2);
         token = strtok(NULL, delim);
         if (token != NULL)
             ops[num_ranges] = token[0];
         else {
             ops[num_ranges] = 0;
             ranges[num_ranges + 1] = NULL;
+            num_ranges++;
             break;
         }
+        token = strtok(NULL, delim);
+        num_ranges++;
     }
     range_query_contents *contents = (range_query_contents *)
         malloc(sizeof(range_query_contents));
-    contents->ranges = ranges;
-    contents->ops = ops;
+    // fill in the data
+    for (i = 0; i < num_ranges; i++) {
+        contents->ranges[i][0] = ranges[i][0];
+        contents->ranges[i][1] = ranges[i][1];
+        if (i != num_ranges - 1) contents->ops[i] = ops[i];
+    }
+
     contents->num_ranges = num_ranges;
-    range->range = contents;
-    msgsnd(queue_id, contents, sizeof(range), 0);
+    range->range_query = *contents;
+    printf("Sending a message to queue\n");
+    msgsnd(queue_id, range, sizeof(msgbuf), 0);
     return EXIT_SUCCESS;
 }

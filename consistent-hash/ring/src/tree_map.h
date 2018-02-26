@@ -36,6 +36,7 @@ typedef struct cache {
 void insert_cache(rbt_ptr, struct cache*);
 cache_id get_machine_for_vector(rbt_ptr, unsigned int);
 rbt_ptr new_rbt();
+void print_tree(rbt_ptr, node_ptr);
 
 
 #endif

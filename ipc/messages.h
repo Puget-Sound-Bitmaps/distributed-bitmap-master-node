@@ -28,16 +28,20 @@ typedef struct assigned_vector {
 } assigned_vector;
 
 typedef struct range_query_contents {
-    vec_id_t **ranges;
-    char *ops;
-    int num_ranges;
+    vec_id_t ranges[128][2];
+    char ops[128];
+    unsigned int num_ranges;
 } range_query_contents;
 
 typedef struct msgbuf {
     long mtype;
     assigned_vector vector;
     vec_id_t point_vec_id;       /* for point query */
-    range_query_contents *range; /* for range query */
+    range_query_contents range_query; /* for range query */
+    //vec_id_t range_lower[1024];
+    // unsigned int range_upper[128];
+    // char ops[128];
+    // unsigned int num_ranges;
 } msgbuf;
 
 

@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "tree_map.h"
-
+#include <math.h>
 
 /* RBT op prototypes */
 /* RBT initialization functions */
@@ -36,7 +36,6 @@ void rbt_delete_fixup(rbt_ptr, node_ptr);
  */
 cache_id succ(rbt_ptr t, hash_value value);
 cache_id recur_succ(rbt_ptr t, node_ptr root, node_ptr suc, hash_value value);
-void print(rbt_ptr t, node_ptr c);
 uint64_t hash(unsigned int);
 
 
@@ -54,23 +53,27 @@ void insert_cache(rbt_ptr t, struct cache* cptr)
 
 cache_id get_machine_for_vector(rbt_ptr t, unsigned int vec_id)
 {
+    //printf("vid = %d, h(vid) = %d\n", vec_id, hash(vec_id));
     return succ(t, hash(vec_id));
 }
 
 cache_id succ(rbt_ptr t, hash_value value)
 {
     node_ptr curr = t->root;
-    if (value >= rbt_max(t, curr)->hv)
+    if (value >= rbt_max(t, curr)->hv) {
         return rbt_min(t, curr)->cid;
+    }
     return recur_succ(t, t->root, t->root, value);
 }
 
-void print(rbt_ptr t, node_ptr c)
+void print_tree(rbt_ptr t, node_ptr c)
 {
     if (c == t->nil) return;
     printf("Hash value (curr, left, right): %d %d %d\n", c->hv, c->left->hv, c->right->hv);
-    print(t, c->right);
-    print(t, c->left);
+    printf("Machine IDS (curr, left, right): %d %d %d\n", c->cid, c->left->cid, c->right->cid);
+
+    print_tree(t, c->right);
+    print_tree(t, c->left);
 }
 
 cache_id recur_succ(rbt_ptr t, node_ptr root, node_ptr suc, hash_value value)
@@ -366,12 +369,12 @@ uint64_t hash(unsigned int key)
     const unsigned char ibuf[256];
     sprintf((char *) ibuf, "%d", key);
     unsigned char obuf[256];
-    SHA1(ibuf, strlen((const char *)ibuf), obuf);
+    SHA256(ibuf, strlen((const char *)ibuf), obuf);
     int i;
     unsigned long long digest = 0;
     int s = strlen((const char *)obuf);
     for (i = 0; i < s; i++) {
-        digest += obuf[i];
+        digest += (unsigned long long )(abs(pow(2.0, (double)i) ) * (obuf[i]));
     }
     return digest;
 }
