@@ -1,2 +1,0 @@
-# Ignore gen/ directory where the output of `rpcgen` is placed.
-gen/
