@@ -1,5 +1,9 @@
 #include "master.h"
-#include "messages.h"
+#include "tpc_master.h"
+#include "../ipc/messages.h"
+#include "slavelist.h"
+#include "../consistent-hash/ring/src/tree_map.h"
+#include "../types/types.h"
 
 #include <errno.h>
 #include <stdbool.h>
@@ -13,37 +17,70 @@
 #include <sys/types.h>
 
 /**
+ * Sort machine-vector tuples in ascending order of machine ID.
+ * Source: https://en.wikipedia.org/wiki/Qsort
+ */
+int compare_machine_vec_tuple(const void *p, const void *q) {
+    unsigned int *x = (unsigned int *)p;
+    unsigned int *y = (unsigned int *)q;
+
+    if (x[0] < y[0])
+        return -1;
+    else if (x[0] > y[0])
+        return 1;
+
+    return 0;
+}
+
+/**
  * Master Process
  *
  * Coordinates/delegates tasks for the system.
  */
 int main(int argc, char *argv[])
 {
+    // XXX: running with defaults for now (r = 3, and hardcoded slave addresses)
+    /*
+    if (argc < 3) {
+        printf("Usage: [-r repl_factor] -s slave_addr1 [... slave_addrn]\n");
+        return 1;
+    }
+    */
+
     /* Connect to message queue. */
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
 
     /* Container for messages. */
-    struct put_msgbuf *request;
+    struct msgbuf *request;
     struct msqid_ds buf;
     int rc;
 
     bool dying = false;
 
-    sleep(2);
+    /*
+     * insert slaves into the tree
+     */
+     rbt_ptr chash_table = new_rbt();
+     int i;
+     for (i = 0; i < NUM_SLAVES; i++) {
+        struct cache *cptr = (struct cache*) malloc(sizeof(struct cache));
+        cptr->cache_id = i;
+        cptr->cache_name = SLAVE_ADDR[i];
+        cptr->replication_factor = 3;
+        insert_cache(chash_table, cptr);
+     }
+
+
 
     while (true) {
         msgctl(msq_id, IPC_STAT, &buf);
-        printf("Items in Queue: %i\n", buf.msg_qnum);
-
-        //sleep(1);
 
         if (buf.msg_qnum > 0) {
-            printf("Popping off queue.\n");
 
-            request = (struct put_msgbuf *) malloc(sizeof(struct put_msgbuf));
+            request = (struct msgbuf *) malloc(sizeof(struct msgbuf));
 
             /* Grab from queue. */
-            rc = msgrcv(msq_id, request, sizeof(struct put_msgbuf), 0, 0);
+            rc = msgrcv(msq_id, request, sizeof(struct msgbuf), 0, 0);
 
             /* Error Checking */
             if (rc < 0) {
@@ -52,27 +89,66 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
             }
 
-            /* Check for death signal. */
+            /* Check for death signal. XXX: should be done w/ SIGKILL */
+            /*
             if (request->mtype == mtype_kill_master) {
                 dying = true;
                 break;
             }
+            */
+            if (request->mtype == mtype_put) {
+                    //printf("Master PUT %i := 0x%llx\n", request->vector.vec_id,
+                    //    request->vector.vec);
+                    vec_id_t vec_id_mult = request->vector.vec_id *
+                        replication_factor;
+                    vec_id_t vec_id_1 = vec_id_mult;
+                    vec_id_t vec_id_2 = vec_id_mult + 1;
+                    vec_id_t vec_id_3 = vec_id_mult + 2;
+                    char *slave_1 = SLAVE_ADDR[
+                        get_machine_for_vector(chash_table, vec_id_1)
+                    ];
+                    char *slave_2 = SLAVE_ADDR[
+                        get_machine_for_vector(chash_table, vec_id_2)
+                    ];
+                    char *slave_3 = SLAVE_ADDR[
+                        get_machine_for_vector(chash_table, vec_id_3)
+                    ];
+                    // TODO ensure slave_1 != slave_2 != slave_3
+                    // TODO: call commit_vector RPC function here
+                    //commit_vector(request->vector.vec_id, request->vector.vec,
+                    //    {slave_1, slave_2, slave_3}, 3);
+            }
+            else if (request->mtype == mtype_range_query) {
+                    range_query_contents *contents = request->range;
+                    int i;
+                    for (i = 0; i < contents->num_ranges; i++) {
+                        int *range = contents->ranges[i];
+                        vec_id_t j;
+                        unsigned int **machine_vec_ptrs = (int *)
+                            malloc(sizeof(int *) * (range[1] - range[0] + 1));
+                        for (j = range[0]; j <= range[1]; j++) {
+                            unsigned int tuple[2] = {
+                                get_machine_for_vector(chash_table, j),
+                                j
+                            };
+                            machine_vec_ptrs[j - range[0]] = tuple;
+                        }
+                        qsort(machine_vec_ptrs, range[1] - range[0], sizeof(vec_id_t),
+                            compare_machine_vec_tuple);
+                    }
+                    /* TODO: Call Jahrme function here */
+            }
+            else if (request->mtype == mtype_point_query) {
+                    /* TODO: Call Jahrme function here */
+            }
 
-            printf("%i := 0x%llx\n", request->vector.vec_id, request->vector.vec);
         }
-
-        if (dying) break;
     }
 
-    if (dying) {
-        struct put_msgbuf signal = {mtype_master_dying, {0,0} };
-        msgsnd(msq_id, &signal, sizeof(struct put_msgbuf), 0);
-    }
+    // if (dying) {
+    //     struct put_msgbuf signal = {mtype_master_dying, {0,0} };
+    //     msgsnd(msq_id, &signal, sizeof(struct put_msgbuf), 0);
+    // }
 
-    //  while (queue is empty)
-    //      while (queue is not empty)
-    //          pop message from queue
-    //          2-phase commit agreement w/ slaves
-    //          if all agree, make RPC calls w/ message args
     return EXIT_SUCCESS;
 }

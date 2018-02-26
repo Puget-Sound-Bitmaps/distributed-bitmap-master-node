@@ -1,0 +1,15 @@
+#ifndef SLAVELIST
+#define SLAVELIST
+
+#define DB_CAPSTONE_1_ADDR "10.250.94.63"
+#define DB_CAPSTONE_2_ADDR "10.250.94.56"
+#define DB_CAPSTONE_3_ADDR "10.250.94.72"
+
+static char SLAVE_ADDR[3][32] = {
+    DB_CAPSTONE_1_ADDR,
+    DB_CAPSTONE_2_ADDR,
+    DB_CAPSTONE_3_ADDR
+};
+#define NUM_SLAVES 3
+
+#endif

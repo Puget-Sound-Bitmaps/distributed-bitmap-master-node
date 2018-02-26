@@ -5,7 +5,10 @@
 
 struct commit_vec_args {
     unsigned int vec_id;
-    unsigned hyper int vec;
+    struct vector {
+        unsigned hyper int *vector;
+        unsigned int vector_length;
+    };
 };
 
 program TWO_PHASE_COMMIT_VOTE {

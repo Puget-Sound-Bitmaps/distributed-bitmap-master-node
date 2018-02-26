@@ -29,7 +29,7 @@ int *commit_msg_1_svc(void *v, struct svc_req *req)
 
 int *commit_vec_1_svc(commit_vec_args *args, struct svc_req *req)
 {
-    printf("Commiting vector #%d: %lu\n", args->vec_id, args->vec);
+    //printf("Commiting vector #%d: %lu\n", args->vec_id, args->vec);
     FILE *fp;
     fp = fopen("vectors.txt", "a");
     char buffer[128];

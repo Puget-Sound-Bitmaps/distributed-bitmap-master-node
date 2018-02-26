@@ -5,7 +5,57 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <openssl/sha.h>
+#include <string.h>
+#include <stdint.h>
 #include "tree_map.h"
+
+
+/* RBT op prototypes */
+/* RBT initialization functions */
+rbt_ptr new_rbt(void);
+node_ptr new_node(rbt_ptr, cache_id, hash_value, rbt_node_color);
+
+/* tree destructor */
+void free_rbt(rbt_ptr);
+
+/* RBT operations (from CLSR) */
+void left_rotate(rbt_ptr, node_ptr);
+void right_rotate(rbt_ptr, node_ptr);
+void rbt_insert(rbt_ptr, node_ptr);
+void rbt_insert_fixup(rbt_ptr, node_ptr);
+void rbt_transplant(rbt_ptr, node_ptr, node_ptr);
+node_ptr rbt_min(rbt_ptr, node_ptr);
+node_ptr rbt_max(rbt_ptr, node_ptr);
+void rbt_delete(rbt_ptr, node_ptr);
+void rbt_delete_fixup(rbt_ptr, node_ptr);
+
+/*
+ * The cache_id of the node n in the tree with the smallest hash_value hv
+ * such that n.hv > value.
+ */
+cache_id succ(rbt_ptr t, hash_value value);
+cache_id recur_succ(rbt_ptr t, node_ptr root, node_ptr suc, hash_value value);
+void print(rbt_ptr t, node_ptr c);
+uint64_t hash(unsigned int);
+
+
+/**
+ * Insert the new cache into the red-black tree
+ *
+ */
+void insert_cache(rbt_ptr t, struct cache* cptr)
+{
+    int i;
+    for (i = 0; i < cptr->replication_factor; i++) {
+        rbt_insert(t, new_node(t, cptr->cache_id, hash(cptr->cache_id), RED));
+    }
+}
+
+cache_id get_machine_for_vector(rbt_ptr t, unsigned int vec_id)
+{
+    return succ(t, hash(vec_id));
+}
 
 cache_id succ(rbt_ptr t, hash_value value)
 {
@@ -63,8 +113,8 @@ node_ptr rbt_max(rbt_ptr t, node_ptr x)
 rbt_ptr new_rbt(void)
 {
     rbt_ptr r;
-    r = (rbt_ptr) malloc(sizeof(struct rbt));
-    r->nil = (node_ptr) malloc(sizeof(struct node));
+    r = (rbt_ptr) malloc(sizeof(rbt));
+    r->nil = (node_ptr) malloc(sizeof(node));
     r->nil->color = BLACK;
     r->nil->hv = 0;
     r->nil->cid = 0;
@@ -78,7 +128,7 @@ node_ptr new_node(rbt_ptr t, cache_id cid, hash_value hv, rbt_node_color color)
 
     node_ptr n;
 
-    n = (node_ptr) malloc(sizeof(struct node));
+    n = (node_ptr) malloc(sizeof(node));
     n->color = color;
 
     n->color = color;
@@ -310,6 +360,22 @@ void rbt_delete_fixup(rbt_ptr t, node_ptr x)
     }
     x->color = BLACK;
 }
+
+uint64_t hash(unsigned int key)
+{
+    const unsigned char ibuf[256];
+    sprintf((char *) ibuf, "%d", key);
+    unsigned char obuf[256];
+    SHA1(ibuf, strlen((const char *)ibuf), obuf);
+    int i;
+    unsigned long long digest = 0;
+    int s = strlen((const char *)obuf);
+    for (i = 0; i < s; i++) {
+        digest += obuf[i];
+    }
+    return digest;
+}
+
 
 void recur_free_rbt(rbt_ptr t, node_ptr n)
 {
