@@ -5,7 +5,7 @@ TST := tst
 
 CFLAGS := -w
 CC := gcc $(CFLAGS)
-RPCGEN := rpcgen -N
+RPCGEN := rpcgen
 
 all: clean compile
 
@@ -21,7 +21,7 @@ RQ_BIN = $(RQ_CLNT) $(RQ_SVC) $(RQ_XDR)
 RQ_GEN = $(GEN)/rq_clnt.c $(GEN)/rq_svc.c $(GEN)/rq_xdr.c $(GEN)/rq.h
 
 $(RQ_GEN): $(SRC)/rq.x
-	@cd $(GEN) && $(RPCGEN) ../$(SRC)/rq.x
+	@cd src && $(RPCGEN) rq.x && mv rq.h rq_* ../gen/
 
 $(RQ_CLNT): $(GEN)/rq_clnt.c $(GEN)/rq.h
 	@echo "Compiling Remote-Query Client"
@@ -65,8 +65,8 @@ $(TPC_XDR): $(GEN)/tpc_xdr.c $(GEN)/tpc.h
 # General #
 ###########
 
-compile: $(RQ_BIN) $(TPC_BIN)
-	
+compile: $(RQ_BIN) #$(TPC_BIN)
+
 clean:
 	@echo "\nCleaning..."
 	@if test -d $(BIN); then rm -rf $(BIN)/*; else mkdir $(BIN); fi

@@ -1,5 +1,6 @@
 #include "master.h"
 #include "tpc_master.h"
+#include "master_rq.h"
 #include "../ipc/messages.h"
 #include "../rpc/gen/rq.h"
 #include "slavelist.h"
@@ -180,23 +181,7 @@ int main(int argc, char *argv[])
                     int array_length
                 }
                 */
-                rq_root_args *root = (rq_root_args *) malloc(sizeof(rq_root_args));
-                root->range_array.range_array_val = range_array;
-                root->range_array.range_array_len = array_index;
-                root->num_ranges = contents.num_ranges;
-                root->ops.ops_val = contents.ops;
-                root->ops.ops_len = contents.num_ranges - 1;
-                char *coordinator = SLAVE_ADDR[0]; // arbitrary for now
-                /* TODO: Call Jahrme function here */
-                CLIENT *cl = clnt_create(coordinator, REMOTE_QUERY_ROOT,
-                    REMOTE_QUERY_ROOT_V1, "tcp");
-                if (cl == NULL) {
-                    printf("Error: could not connect to coordinator %s.\n", coordinator);
-                }
-                rq_root_1(*root, cl);
-
-                free(range_array);
-                free(root);
+                init_range_query(range_array, contents.num_ranges, contents.ops, array_index);
             }
             else if (request->mtype == mtype_point_query) {
                 /* TODO: Call Jahrme function here */
