@@ -47,7 +47,7 @@ TPC_BIN = $(TPC_CLNT) $(TPC_SVC) $(TPC_XDR)
 TPC_GEN = $(GEN)/tpc_clnt.c $(GEN)/tpc_svc.c $(GEN)/tpc_xdr.c $(GEN)/tpc.h
 
 $(TPC_GEN): $(SRC)/tpc.x
-	@cd $(GEN) && $(RPCGEN) ../$(SRC)/tpc.x
+	@cd src && $(RPCGEN) tpc.x && mv tpc.h tpc_* ../gen/
 
 $(TPC_CLNT): $(GEN)/tpc_clnt.c $(GEN)/tpc.h
 	@echo "Compiling TPC Client"
@@ -65,9 +65,9 @@ $(TPC_XDR): $(GEN)/tpc_xdr.c $(GEN)/tpc.h
 # General #
 ###########
 
-compile: $(RQ_BIN) #$(TPC_BIN)
+compile: $(RQ_BIN) $(TPC_BIN)
 
 clean:
-	@echo "\nCleaning..."
+	@echo "Cleaning..."
 	@if test -d $(BIN); then rm -rf $(BIN)/*; else mkdir $(BIN); fi
 	@if test -d $(GEN); then rm -rf $(GEN)/*; else mkdir $(GEN); fi

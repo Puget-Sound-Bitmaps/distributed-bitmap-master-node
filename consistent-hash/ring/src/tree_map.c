@@ -374,7 +374,7 @@ uint64_t hash(unsigned int key)
     unsigned long long digest = 0;
     int s = strlen((const char *)obuf);
     for (i = 0; i < s; i++) {
-        digest += (unsigned long long )(abs(pow(2.0, (double)i) ) * (obuf[i]));
+        digest += (unsigned long long )(fabs(pow(2.0, (double)i) ) * (obuf[i]));
     }
     return digest;
 }

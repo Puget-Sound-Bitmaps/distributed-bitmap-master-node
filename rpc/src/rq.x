@@ -3,29 +3,22 @@
  */
 
 /**
- *  Query Operations
- *
- *  The operations permitted in queries.
- *  For now we only allow AND and OR.
-
-enum query_op {AND, OR};
- */
-/**
  *  Pipe Query
  *
  *  Thus named as the query is piped from the end back to the initial caller.
  *
- *  This query is formulated as [vec op [pipe_query]].
- *  When [pipe_query] is null the above query is read as [vec op 0].
- *
- *  This can also be used for point queries by sending [vec OR null].
-
-struct rq_pipe {
+ *  Querying works like this: each element in this linked list is a machine to
+ *  visit to carry out this query. the result_vector contains the result of
+ *  performing the query thus far. receiving this argument is a command to
+ *  get the vector on this machine with the given vector id and OP it
+ *  with the result_vector. then if next is nonnull recurse, otherwise return the result
+*/
+struct rq_pipe_args {
     unsigned int vec_id;
-    unsigned hyper int *vector;
-    query_op op;
-    char next_machine[16];
-    struct rq_pipe *next;
+    unsigned hyper int *result_vector;
+    char op;
+    char machine_addr[16]; /* ip address, max 15-chars + null terminator. */
+    struct rq_pipe_args *next;
 };
 
 struct query_result {
@@ -36,10 +29,10 @@ struct query_result {
 
 program REMOTE_QUERY_PIPE {
     version REMOTE_QUERY_PIPE_V1 {
-        query_result RQ_PIPE(struct rq_pipe) = 1;
+        query_result RQ_PIPE(rq_pipe_args) = 1;
     } = 1;
 } = 0x20;
-/* ip address, max 15-chars + null terminator. */
+
 /**
  *  Root Query
  *
@@ -51,7 +44,7 @@ program REMOTE_QUERY_PIPE {
  *  The coordinator then invokes the `pipe_query`s and combines the results.
  *  We require len(ops) = num_ranges - 1 so that ops fit between ranges.
 */
-struct rq_root_args {
+struct rq_range_root_args {
     unsigned int range_array<>;
     unsigned int num_ranges;
     char ops<>;
@@ -59,6 +52,6 @@ struct rq_root_args {
 
 program REMOTE_QUERY_ROOT {
     version REMOTE_QUERY_ROOT_V1 {
-        int RQ_ROOT(struct rq_root_args) = 1;
+        int RQ_RANGE_ROOT(struct rq_range_root_args) = 1;
     } = 1;
 } = 0x10;

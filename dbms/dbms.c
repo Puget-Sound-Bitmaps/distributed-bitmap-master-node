@@ -12,6 +12,7 @@
 
 #include <sys/ipc.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 /**
  * Database Management System (DBMS)

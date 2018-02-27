@@ -57,8 +57,6 @@ int main(int argc, char *argv[])
     struct msqid_ds buf;
     int rc;
 
-    bool dying = false;
-
     /*
      * insert slaves into the tree
      */
@@ -93,6 +91,7 @@ int main(int argc, char *argv[])
 
             if (request->mtype == mtype_put) {
                 // FIXME: generalize this
+                /*
                 vec_id_t vec_id_mult = request->vector.vec_id *
                     replication_factor;
                 vec_id_t vec_id_1 = vec_id_mult;
@@ -107,6 +106,7 @@ int main(int argc, char *argv[])
                 char *slave_3 = SLAVE_ADDR[
                     get_machine_for_vector(chash_table, vec_id_3)
                 ];
+                */
                 // TODO ensure slave_1 != slave_2 != slave_3
                 // TODO: call commit_vector RPC function here
                 //commit_vector(request->vector.vec_id, request->vector.vec,
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
                     }
                     free(machine_vec_ptrs);
                 }
-                // NB: master node structure looks like this
+                // NB: range array passed to coordinator structure looks like this
                 /*
                     unsigned int *range_array = {
                         2, m(1), 1, m(2), 2,

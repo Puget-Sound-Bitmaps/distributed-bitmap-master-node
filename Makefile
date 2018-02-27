@@ -1,6 +1,6 @@
 BIN := bin
 
-all: clean .master .dbms 
+all: clean .master .dbms
 
 .start_dbms:
 	@cd bin && ./dbms
@@ -23,5 +23,5 @@ clean:
 .master: tree_map.o .rpc
 	@echo "Compiling Master"
 	@cd master && gcc -c -Wall ../rpc/bin/rq_xdr.o ../rpc/bin/rq_clnt.o master_rq.c -o ../$(BIN)/master_rq.o
-	@echo "compiling main"
+	@echo "compiling master main"
 	@cd master && gcc -Wall ../$(BIN)/tree_map.o ../$(BIN)/master_rq.o master.c -o ../bin/master -lssl -lcrypto -lm

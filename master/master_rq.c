@@ -106,7 +106,7 @@
 
 int init_range_query(unsigned int *range_array, int num_ranges, char *ops, int array_len)
 {
-    rq_root_args *root = (rq_root_args *) malloc(sizeof(rq_root_args));
+    rq_range_root_args *root = (rq_range_root_args *) malloc(sizeof(rq_range_root_args));
     root->range_array.range_array_val = range_array;
     root->range_array.range_array_len = array_len;
     root->num_ranges = num_ranges;
@@ -118,8 +118,8 @@ int init_range_query(unsigned int *range_array, int num_ranges, char *ops, int a
     if (cl == NULL) {
         printf("Error: could not connect to coordinator %s.\n", coordinator);
     }
-    //int root = 0;
-    rq_root_1(root, cl);
+    rq_range_root_1(root, cl);
 
     free(root);
+    return EXIT_SUCCESS;
 }
