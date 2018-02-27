@@ -3,9 +3,6 @@
  */
 
 #include "../rpc/gen/rq.h"
-#include "../rpc/gen/rq_xdr.c"
-#include "../rpc/gen/rq_svc.c"
-#include "../rpc/gen/rq_clnt.c"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +56,8 @@ int *rq_pipe_1_svc(struct rq_pipe query, struct svc_req *req)
     return &result;
 }
 
-int *rq_root_1_svc(struct rq_root query, struct svc_req *req)
+int *rq_root_1_svc(struct rq_root_args query, struct svc_req *req)
 {
+
     return EXIT_SUCCESS;
 }

@@ -1,6 +1,7 @@
 #include "master.h"
 #include "tpc_master.h"
 #include "../ipc/messages.h"
+#include "../rpc/gen/rq.h"
 #include "slavelist.h"
 #include "../consistent-hash/ring/src/tree_map.h"
 #include "../types/types.h"
@@ -15,6 +16,8 @@
 
 #include <sys/ipc.h>
 #include <sys/types.h>
+
+rbt_ptr chash_table;
 
 /**
  * Sort machine-vector tuples in ascending order of machine ID.
@@ -58,7 +61,7 @@ int main(int argc, char *argv[])
     /*
      * insert slaves into the tree
      */
-     rbt_ptr chash_table = new_rbt();
+     chash_table = new_rbt();
      int i;
      for (i = 0; i < NUM_SLAVES; i++) {
         struct cache *cptr = (struct cache*) malloc(sizeof(struct cache));
@@ -66,6 +69,7 @@ int main(int argc, char *argv[])
         cptr->cache_name = SLAVE_ADDR[i];
         cptr->replication_factor = 1;
         insert_cache(chash_table, cptr);
+        free(cptr);
      }
 
     while (true) {
@@ -86,16 +90,8 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
             }
 
-            /* Check for death signal. XXX: should be done w/ SIGKILL */
-            /*
-            if (request->mtype == mtype_kill_master) {
-                dying = true;
-                break;
-            }
-            */
             if (request->mtype == mtype_put) {
-                //printf("Master PUT %i := 0x%llx\n", request->vector.vec_id,
-                //    request->vector.vec);
+                // FIXME: generalize this
                 vec_id_t vec_id_mult = request->vector.vec_id *
                     replication_factor;
                 vec_id_t vec_id_1 = vec_id_mult;
@@ -118,9 +114,25 @@ int main(int argc, char *argv[])
             else if (request->mtype == mtype_range_query) {
                 range_query_contents contents = request->range_query;
                 int i;
+                // TODO allocate ranges array
+                // this array will eventually include data for the coordinator RPC
+                // as described in the documentation.
+                int num_ints_needed = 0;
+                for (i = 0; i < contents.num_ranges; i++) {
+                    unsigned int *range = contents.ranges[i];
+                    // each range needs this much data:
+                    // number of vectors (inside parens), a machine/vector ID
+                    // for each one, preceded by the number of vectors to query
+                    int row_len = (range[1] - range[0] + 1) * 2 + 1;
+                    num_ints_needed += row_len;
+                }
+                unsigned int *range_array = (unsigned int *) malloc(sizeof(unsigned int) * num_ints_needed);
+                int array_index = 0;
                 for (i = 0; i < contents.num_ranges; i++) {
                     unsigned int *range = contents.ranges[i];
                     vec_id_t j;
+                    // start of range is number of vectors
+                    range_array[array_index++] = range[1] - range[0] + 1;
                     unsigned int **machine_vec_ptrs = (unsigned int **)
                         malloc(sizeof(int *) * (range[1] - range[0] + 1));
                     //printf("Allocated tuples\n");
@@ -135,22 +147,71 @@ int main(int argc, char *argv[])
 
                     qsort(machine_vec_ptrs, range[1] - range[0], sizeof(unsigned int) * 2,
                         compare_machine_vec_tuple);
-                }
 
+                    // save machine/vec IDs into the array
+                    for (j = range[0]; j <= range[1]; j++) {
+                        range_array[array_index++] = machine_vec_ptrs[j - range[0]][0];
+                        range_array[array_index++] = machine_vec_ptrs[j - range[0]][1];
+                    }
+
+                    for (j = range[0]; j <= range[1]; j++) {
+                        free(machine_vec_ptrs[j - range[0]]);
+                    }
+                    free(machine_vec_ptrs);
+                }
+                // NB: master node structure looks like this
+                /*
+                    unsigned int *range_array = {
+                        2, m(1), 1, m(2), 2,
+                        2, m(3), 3, m(4), 4,
+                        2, m(5), 5, m(6), 6
+                    }
+                    where m(i) is the machine address of vector with id i.
+                    Format of array: each subarray contains the following information:
+                    Number of vectors in this range, n.
+                    The subsequent 2n elements alternate between machine IDs and the vectors
+                    we want from that machine.
+                    Machine ID is just an index in this array
+                    char **machine_addrs = {
+                        "123", "456", "789"
+                    }
+                    So machine with ID = 0 has address 123.
+                    int num_ranges, so the coordinator knows rightaway how many threads to spawn.
+                    int array_length
+                }
+                */
+                rq_root_args *root = (rq_root_args *) malloc(sizeof(rq_root_args));
+                root->range_array.range_array_val = range_array;
+                root->range_array.range_array_len = array_index;
+                root->num_ranges = contents.num_ranges;
+                root->ops.ops_val = contents.ops;
+                root->ops.ops_len = contents.num_ranges - 1;
+                char *coordinator = SLAVE_ADDR[0]; // arbitrary for now
                 /* TODO: Call Jahrme function here */
+                CLIENT *cl = clnt_create(coordinator, REMOTE_QUERY_ROOT,
+                    REMOTE_QUERY_ROOT_V1, "tcp");
+                if (cl == NULL) {
+                    printf("Error: could not connect to coordinator %s.\n", coordinator);
+                }
+                rq_root_1(*root, cl);
+
+                free(range_array);
+                free(root);
             }
             else if (request->mtype == mtype_point_query) {
                 /* TODO: Call Jahrme function here */
             }
-
+            free(request);
         }
 
     }
 
-    // if (dying) {
-    //     struct put_msgbuf signal = {mtype_master_dying, {0,0} };
-    //     msgsnd(msq_id, &signal, sizeof(struct put_msgbuf), 0);
-    // }
-
     return EXIT_SUCCESS;
+}
+
+void sigint_handler(int sig)
+{
+    // TODO free allocated memory (RBT, ...)
+
+    // TODO signal death to slave nodes
 }

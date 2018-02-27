@@ -16,6 +16,10 @@ clean:
 	@echo "Compiling DBMS"
 	@cd dbms && gcc dbms.c -o ../$(BIN)/dbms
 
-.master: tree_map.o
+.rpc:
+	@echo "Compiling RPC modules"
+	@cd rpc && make
+
+.master: tree_map.o .rpc
 	@echo "Compiling Master"
-	@cd master && gcc ../$(BIN)/tree_map.o master.c -o ../$(BIN)/master -lssl -lcrypto -lm
+	@cd master && gcc ../$(BIN)/tree_map.o ../rpc/bin/rq_svc.o ../rpc/bin/rq_clnt.o ../rpc/bin/rq_xdr.o master.c -o ../$(BIN)/master -lssl -lcrypto -lm

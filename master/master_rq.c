@@ -111,92 +111,92 @@ int handle_point_query(char *query_string)
 int handle_range_query(char *request)
 {
     return EXIT_SUCCESS;
-
-    /* Strip "R:" from start of string. */
-    size_t request_length = strlen(request);
-    char *query_string = (char *) malloc((request_length - 2) * sizeof(char));
-    memcpy(query_string, &request[2], request_length - 1);
-    size_t query_length = strlen(query_string);
-
-    /********************
-     * Build the query. *
-     ********************/
-
-    /* Count up OPs. */
-    int and_count = 0, or_count = 0;
-
-    int i;
-
-    for (i = 0; i < query_length; ++i) {
-        if (query_string[i] == '&') ++and_count;
-        else if (query_string[i] == '|') ++or_count;
-        else continue;
-    }
-
-    int op_count = and_count + or_count;
-
-    query_op *ops = malloc(op_count * sizeof(query_op));
-
-    int ops_pos = 0;
-    for (i = 0; i < query_length; ++i) {
-        if (query_string[i] == '&') {
-            ops[ops_pos] = AND;
-            ++ops_pos;
-        }
-        else if (query_string[i] == '|') {
-            ops[ops_pos] = OR;
-            ++ops_pos;
-        }
-        else continue;
-    }
-
-    /* TODO:
-     * Split bit query into array of ranges
-     * Convert each range into a `rq_pipe` query
-     *
-
-
-   /* Split Query into ranges */
-
-
-
-
-
-
-
-
-
-    // struct rq_pipe *pipes[op_count + 1] = malloc((op_count + 1) * sizeof(rq_pipe));
-    struct rq_root *query = malloc(sizeof(rq_root));
-    // query->pipes = *pipes;
-    // query->ops = *ops;
-
-
-
-
-
-
-
-    /* Send the Query */
-
-    CLIENT *client;
-    int *result;
-
-    client = clnt_create("localhost",
-        REMOTE_QUERY_ROOT, REMOTE_QUERY_ROOT_V1, "tcp");
-    if (client) result = rq_root_1(*query, client);
-
-    if (!client) {
-        printf("Error: Could not connect to server.\n");
-        result = EXIT_FAILURE;
-    }
-    if (!result) {
-        printf("Error: RPC failed.\n");
-        result = EXIT_FAILURE;
-    }
-
-    free(query);
-
-    /* Return the result. */
-    return *result;
+   // 
+   //  /* Strip "R:" from start of string. */
+   //  size_t request_length = strlen(request);
+   //  char *query_string = (char *) malloc((request_length - 2) * sizeof(char));
+   //  memcpy(query_string, &request[2], request_length - 1);
+   //  size_t query_length = strlen(query_string);
+   //
+   //  /********************
+   //   * Build the query. *
+   //   ********************/
+   //
+   //  /* Count up OPs. */
+   //  int and_count = 0, or_count = 0;
+   //
+   //  int i;
+   //
+   //  for (i = 0; i < query_length; ++i) {
+   //      if (query_string[i] == '&') ++and_count;
+   //      else if (query_string[i] == '|') ++or_count;
+   //      else continue;
+   //  }
+   //
+   //  int op_count = and_count + or_count;
+   //
+   //  query_op *ops = malloc(op_count * sizeof(query_op));
+   //
+   //  int ops_pos = 0;
+   //  for (i = 0; i < query_length; ++i) {
+   //      if (query_string[i] == '&') {
+   //          ops[ops_pos] = AND;
+   //          ++ops_pos;
+   //      }
+   //      else if (query_string[i] == '|') {
+   //          ops[ops_pos] = OR;
+   //          ++ops_pos;
+   //      }
+   //      else continue;
+   //  }
+   //
+   //  /* TODO:
+   //   * Split bit query into array of ranges
+   //   * Convert each range into a `rq_pipe` query
+   //   *
+   //
+   //
+   // /* Split Query into ranges */
+   //
+   //
+   //
+   //
+   //
+   //
+   //
+   //
+   //
+   //  // struct rq_pipe *pipes[op_count + 1] = malloc((op_count + 1) * sizeof(rq_pipe));
+   //  struct rq_root *query = malloc(sizeof(rq_root));
+   //  // query->pipes = *pipes;
+   //  // query->ops = *ops;
+   //
+   //
+   //
+   //
+   //
+   //
+   //
+   //  /* Send the Query */
+   //
+   //  CLIENT *client;
+   //  int *result;
+   //
+   //  client = clnt_create("localhost",
+   //      REMOTE_QUERY_ROOT, REMOTE_QUERY_ROOT_V1, "tcp");
+   //  if (client) result = rq_root_1(*query, client);
+   //
+   //  if (!client) {
+   //      printf("Error: Could not connect to server.\n");
+   //      result = EXIT_FAILURE;
+   //  }
+   //  if (!result) {
+   //      printf("Error: RPC failed.\n");
+   //      result = EXIT_FAILURE;
+   //  }
+   //
+   //  free(query);
+   //
+   //  /* Return the result. */
+   //  return *result;
 }

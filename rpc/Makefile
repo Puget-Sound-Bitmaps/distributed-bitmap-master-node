@@ -13,9 +13,9 @@ all: clean compile
 # Remote Query #
 ################
 
-RQ_CLNT = $(BIN)/rq_clnt
-RQ_SVC = $(BIN)/rq_svc
-RQ_XDR = $(BIN)/rq_xdr
+RQ_CLNT = $(BIN)/rq_clnt.o
+RQ_SVC = $(BIN)/rq_svc.o
+RQ_XDR = $(BIN)/rq_xdr.o
 
 RQ_BIN = $(RQ_CLNT) $(RQ_SVC) $(RQ_XDR)
 RQ_GEN = $(GEN)/rq_clnt.c $(GEN)/rq_svc.c $(GEN)/rq_xdr.c $(GEN)/rq.h
@@ -32,16 +32,16 @@ $(RQ_SVC): $(GEN)/rq_svc.c $(GEN)/rq.h
 	@$(CC) -c -o $(RQ_SVC) $(GEN)/rq_clnt.c
 
 $(RQ_XDR): $(GEN)/rq_xdr.c $(GEN)/rq.h
-	@echo "Compiling Remote-Query External Data Representation"
+	@echo "Compiling Remote-Query XDR"
 	@$(CC) -c -o $(RQ_XDR) $(GEN)/rq_clnt.c
 
 ####################
 # Two-Phase Commit #
 ####################
 
-TPC_CLNT = $(BIN)/tpc_clnt
-TPC_SVC = $(BIN)/tpc_svc
-TPC_XDR = $(BIN)/tpc_xdr
+TPC_CLNT = $(BIN)/tpc_clnt.o
+TPC_SVC = $(BIN)/tpc_svc.o
+TPC_XDR = $(BIN)/tpc_xdr.o
 
 TPC_BIN = $(TPC_CLNT) $(TPC_SVC) $(TPC_XDR)
 TPC_GEN = $(GEN)/tpc_clnt.c $(GEN)/tpc_svc.c $(GEN)/tpc_xdr.c $(GEN)/tpc.h
@@ -50,15 +50,15 @@ $(TPC_GEN): $(SRC)/tpc.x
 	@cd $(GEN) && $(RPCGEN) ../$(SRC)/tpc.x
 
 $(TPC_CLNT): $(GEN)/tpc_clnt.c $(GEN)/tpc.h
-	@echo "Compiling Remote-Query Client"
+	@echo "Compiling TPC Client"
 	@$(CC) -c -o $(TPC_CLNT) $(GEN)/tpc_clnt.c
 
 $(TPC_SVC): $(GEN)/tpc_svc.c $(GEN)/tpc.h
-	@echo "Compiling Remote-Query Service"
+	@echo "Compiling TPC Service"
 	@$(CC) -c -o $(TPC_SVC) $(GEN)/tpc_clnt.c
 
 $(TPC_XDR): $(GEN)/tpc_xdr.c $(GEN)/tpc.h
-	@echo "Compiling Remote-Query External Data Representation"
+	@echo "Compiling TPC XDR"
 	@$(CC) -c -o $(TPC_XDR) $(GEN)/tpc_clnt.c
 
 ###########
@@ -66,8 +66,8 @@ $(TPC_XDR): $(GEN)/tpc_xdr.c $(GEN)/tpc.h
 ###########
 
 compile: $(RQ_BIN) $(TPC_BIN)
-
+	
 clean:
-	@echo "Cleaning..."
+	@echo "\nCleaning..."
 	@if test -d $(BIN); then rm -rf $(BIN)/*; else mkdir $(BIN); fi
 	@if test -d $(GEN); then rm -rf $(GEN)/*; else mkdir $(GEN); fi
