@@ -3,6 +3,8 @@
  */
 
 #include "../rpc/gen/rq.h"
+#include "../rpc/gen/rq_xdr.c"
+#include "../rpc/gen/rq_clnt.c"
 #include "../master/slavelist.h"
 
 #include "../../bitmap-engine/BitmapEngine/src/seg-util/SegUtil.h"

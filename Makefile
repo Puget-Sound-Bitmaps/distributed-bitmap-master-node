@@ -49,9 +49,9 @@ $(BIN)/tree_map.o:
 		slave/slave_rq.c
 	@echo "Compiling Slave Main"
 	@$(CC) -o $(BIN)/slave \
-		$(BIN)/slave_rq.o \
 		$(BIN)/WAHQuery.o \
 		$(BIN)/SegUtil.o \
+		$(BIN)/slave_rq.o \
 		slave/slave.c \
 		-lssl -lcrypto -lm
 
