@@ -45,8 +45,6 @@ query_result get_vector(u_int vec_id) {
         fclose(file_pointer);
     }
 
-    free(filename);
-
     query_result vector = { {vector_len, vector_val}, exit_code };
     return vector;
 }
