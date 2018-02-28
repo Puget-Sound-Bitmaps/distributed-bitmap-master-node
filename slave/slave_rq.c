@@ -78,7 +78,7 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
             exit_code = EXIT_FAILURE;
         }
         else {
-            next_result = rq_pipe_1(*next, client);
+            next_result = rq_pipe_1(*(query.next), client);
 
             if (next_result == NULL) {
                 clnt_perror(client, "call failed:");
@@ -104,13 +104,13 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
      */
     if (query.op == '|') {
         result_len = OR_WAH(result_val,
-            this_result->vector_val, this_result->vector_len,
-            next_result->vector_val, next_result->vector_len);
+            this_result->vector.vector_val, this_result->vector.vector_len,
+            next_result->vector.vector_val, next_result->vector.vector_len);
     }
     else if (query.op == '&') {
         result_len = AND_WAH(result_val,
-            this_result->vector_val, this_result->vector_len,
-            next_result->vector_val, next_result->vector_len);
+            this_result->vector.vector_val, this_result->vector.vector_len,
+            next_result->vector.vector_val, next_result->vector.vector_len);
     }
     else {
         printf("Error: Unknown Operator\n");
@@ -141,7 +141,7 @@ void *init_coordinator_thread(void *coord_args) {
     // END TEST
 
     CLIENT *clnt = clnt_create(args->args->machine_addr, REMOTE_QUERY_PIPE, REMOTE_QUERY_PIPE_V1, "tcp");
-    query_result *res = rq_pipe_1_svc(args->args, clnt);
+    query_result *res = rq_pipe_1_svc(*(args->args), clnt);
     if (res == NULL) {
         printf("Query to %s failed\n", args->args->machine_addr);
         return (void *) 1;
