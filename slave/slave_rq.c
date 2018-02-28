@@ -13,8 +13,8 @@
 query_result read_vector(u_int vec_id) {
     /* Turn vec_id into the filename "vec_id.dat" */
     int number_size = (vec_id == 0 ? 1 : (int) (log10(vec_id) + 1));
-    int filename_size = number_size + 4 /* ".dat" */
-    char *filename[filename_size];
+    int filename_size = number_size + 4; /* ".dat" */
+    char filename[filename_size];
     snprintf (filename, filename_size, "%u.dat", vec_id);
 
     /* Necessary Variables */
@@ -67,7 +67,7 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
 
     /* Recursive Query */
     else {
-        char *next_host = query.machine_addr;
+        char *host = query.machine_addr;
 
         CLIENT *client;
         client = clnt_create(host,
@@ -104,13 +104,13 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
      */
     if (query.op == '|') {
         result_len = OR_WAH(result_val,
-            this_result.vector_val, this_result.vector_len,
-            next_result.vector_val, next_result.vector_len);
+            this_result->vector_val, this_result->vector_len,
+            next_result->vector_val, next_result->vector_len);
     }
     else if (query.op == '&') {
         result_len = AND_WAH(result_val,
-            this_result.vector_val, this_result.vector_len,
-            next_result.vector_val, next_result.vector_len);
+            this_result->vector_val, this_result->vector_len,
+            next_result->vector_val, next_result->vector_len);
     }
     else {
         printf("Error: Unknown Operator\n");
