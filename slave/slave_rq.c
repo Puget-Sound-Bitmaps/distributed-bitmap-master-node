@@ -95,7 +95,7 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
     }
 
     /* Our final return values. */
-    query_result *result_val = NULL;
+    u_int64_t *result_val = (u_int64_t *) malloc(sizeof(u_int64_t) * this_result->vector.vector_len);
     u_int result_len = 0;
 
     /*  TODO:
