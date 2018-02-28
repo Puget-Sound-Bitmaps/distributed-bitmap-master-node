@@ -102,7 +102,7 @@ void *push_vector(void *thread_arg)
     a->vec_id = args->vec_id;
     a->vector = args->vector.vector;
     a->vector_length = args->vector.vector_length;
-    int *result = commit_vec_1(a, cl);
+    int *result = commit_vec_1(*a, cl);
 
     if (result == NULL) {
         printf("Commit failed.\n");

@@ -1,20 +1,21 @@
 BIN := bin
+RPC_BIN := rpc/bin
 
 all: clean .master .dbms
 
 .start_dbms:
-	@cd bin && ./dbms
+	@$(bin)/dbms
 
 tree_map.o:
 	@echo "Compiling tree map"
-	@cd consistent-hash/ring/src && gcc -c -Wall tree_map.c -o ../../../$(BIN)/tree_map.o
+	@gcc -c -Wall consistent-hash/ring/src/tree_map.c -o $(BIN)/tree_map.o
 
 clean:
 	@if test -d $(BIN); then rm -rf $(BIN)/*; else mkdir $(BIN); fi
 
 .dbms:
 	@echo "Compiling DBMS"
-	@cd dbms && gcc dbms.c -o ../$(BIN)/dbms
+	@gcc dbms/dbms.c -o $(BIN)/dbms
 
 .rpc:
 	@echo "Compiling RPC modules"
@@ -22,6 +23,6 @@ clean:
 
 .master: tree_map.o .rpc
 	@echo "Compiling Master"
-	@cd master && gcc -c -Wall ../rpc/bin/rq_xdr.o ../rpc/bin/rq_clnt.o master_rq.c -o ../$(BIN)/master_rq.o
+	@gcc -c -Wall $(RPC_BIN)/rq_xdr.o $(RPC_BIN)/rq_clnt.o master/master_rq.c -o $(BIN)/master_rq.o
 	@echo "compiling master main"
-	@cd master && gcc -Wall ../$(BIN)/tree_map.o ../$(BIN)/master_rq.o master.c -o ../bin/master -lssl -lcrypto -lm
+	@gcc -Wall $(BIN)/tree_map.o $(BIN)/master_rq.o master/master.c -o $(BIN)/master -lssl -lcrypto -lm
