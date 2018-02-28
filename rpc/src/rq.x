@@ -15,15 +15,13 @@
 */
 struct rq_pipe_args {
     unsigned int vec_id;
-    unsigned hyper int *result_vector;
     char op;
-    char machine_addr[16]; /* ip address, max 15-chars + null terminator. */
+    string machine_addr<16>; /* ip address, max 15-chars + null terminator. */
     struct rq_pipe_args *next;
 };
 
 struct query_result {
-    unsigned hyper int *vector;
-    unsigned int vector_length;
+    unsigned hyper int vector<>;
     unsigned int exit_code;
 };
 
@@ -42,7 +40,6 @@ program REMOTE_QUERY_PIPE {
  *
  *  This is the query sent from the master-node to the coordinator.
  *  The coordinator then invokes the `pipe_query`s and combines the results.
- *  We require len(ops) = num_ranges - 1 so that ops fit between ranges.
 */
 struct rq_range_root_args {
     unsigned int range_array<>;
@@ -52,6 +49,6 @@ struct rq_range_root_args {
 
 program REMOTE_QUERY_ROOT {
     version REMOTE_QUERY_ROOT_V1 {
-        int RQ_RANGE_ROOT(struct rq_range_root_args) = 1;
+        int RQ_RANGE_ROOT(rq_range_root_args) = 1;
     } = 1;
 } = 0x10;

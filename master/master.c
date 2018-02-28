@@ -21,7 +21,7 @@
 rbt_ptr chash_table;
 
 /**
- * Sort machine-vector tuples in ascending order of machine ID.
+ * Comparator for machine-vector tuples to sort in ascending order of machine ID.
  * Source: https://en.wikipedia.org/wiki/Qsort
  */
 int compare_machine_vec_tuple(const void *p, const void *q) {
@@ -69,8 +69,8 @@ int main(int argc, char *argv[])
         cptr->replication_factor = 1;
         insert_cache(chash_table, cptr);
         free(cptr);
-     }
-
+    }
+    printf("entering loop\n");
     while (true) {
         msgctl(msq_id, IPC_STAT, &buf);
 
@@ -134,6 +134,7 @@ int main(int argc, char *argv[])
                     vec_id_t j;
                     // start of range is number of vectors
                     range_array[array_index++] = range[1] - range[0] + 1;
+                    printf("inserting number of elements: %d\n", range[1] - range[0] + 1);
                     unsigned int **machine_vec_ptrs = (unsigned int **)
                         malloc(sizeof(int *) * (range[1] - range[0] + 1));
                     //printf("Allocated tuples\n");
@@ -149,9 +150,11 @@ int main(int argc, char *argv[])
                     qsort(machine_vec_ptrs, range[1] - range[0], sizeof(unsigned int) * 2,
                         compare_machine_vec_tuple);
 
-                    // save machine/vec IDs into the array
+                    /* save machine/vec IDs into the array */
                     for (j = range[0]; j <= range[1]; j++) {
+                        printf("inserting machine ID %d\n", machine_vec_ptrs[j - range[0]][0]);
                         range_array[array_index++] = machine_vec_ptrs[j - range[0]][0];
+                        printf("inserting vector ID %d\n", machine_vec_ptrs[j - range[0]][1]);
                         range_array[array_index++] = machine_vec_ptrs[j - range[0]][1];
                     }
 
@@ -167,6 +170,11 @@ int main(int argc, char *argv[])
                         2, m(3), 3, m(4), 4,
                         2, m(5), 5, m(6), 6
                     }
+                    For the example of R:[0,9]&[10,15]&[20,27] (*unsorted*)
+                    unsigned int *range_array = {
+                        10, m(0), 0, m(1), 1, m(2), 2, m(3), 3, m(4), 4, m(5), 5, m(6), 6, m(7), 7, m(8), 8, m(9), 9,
+                        6, m(10), 10
+                    }
                     where m(i) is the machine address of vector with id i.
                     Format of array: each subarray contains the following information:
                     Number of vectors in this range, n.
@@ -181,6 +189,15 @@ int main(int argc, char *argv[])
                     int array_length
                 }
                 */
+                // for (i = 0; i < array_index; i++) {
+                //
+                //     printf("%d ", range_array[i]);
+                //     if (i == new_ctr) {
+                //         printf("\n");
+                //         new_ctr += range_array[i];
+                //     }
+                // }
+                printf("\n");
                 init_range_query(range_array, contents.num_ranges, contents.ops, array_index);
             }
             else if (request->mtype == mtype_point_query) {
