@@ -17,8 +17,8 @@ query_result get_vector(u_int vec_id) {
     /* Turn vec_id into the filename "vec_id.dat" */
     int number_size = (vec_id == 0 ? 1 : (int) (log10(vec_id) + 1));
     int filename_size = number_size + 4; /* ".dat" */
-    char *filename = (char *) malloc(filename_size * sizeof(char));
-    snprintf (filename, filename_size, "%u.dat", vec_id);
+    char filename[filename_size];
+    snprintf (filename, filename_size * sizeof(char), "%u.dat", vec_id);
 
     /* Necessary Variables */
     FILE *file_pointer = NULL;
@@ -27,7 +27,7 @@ query_result get_vector(u_int vec_id) {
     u_int exit_code = EXIT_SUCCESS;
 
     /* Open file in binary mode. */
-    file_pointer = fopen(*filename, "rb");
+    file_pointer = fopen(filename, "rb");
 
     if (file_pointer == NULL) {
         exit_code = EXIT_FAILURE ^ vec_id;
@@ -121,8 +121,12 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
         printf("Error: Unknown Operator\n");
     }
 
-    query_result vector = { {result_len, result_val}, exit_code };
-    return &vector;
+    query_result *vector = (query_result *) malloc(sizeof(query_result));
+    vector->vector.vector_len = result_len;
+    vector->vector.vector_val = result_val;
+    vector->exit_code = exit_code;
+
+    return vector;
 }
 
 query_result **results;
