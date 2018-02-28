@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-query_result read_vector(u_int vec_id) {
+query_result get_vector(u_int vec_id) {
     /* Turn vec_id into the filename "vec_id.dat" */
     int number_size = (vec_id == 0 ? 1 : (int) (log10(vec_id) + 1));
     int filename_size = number_size + 4; /* ".dat" */
