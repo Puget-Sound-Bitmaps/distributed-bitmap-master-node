@@ -33,6 +33,28 @@ $(BIN)/tree_map.o:
 		master/master.c \
 		-lssl -lcrypto -lm
 
+.engine:
+	@echo "Compiling Bitmap Engine Pieces"
+	@$(CC) -c -o $(BIN)/WAHQuery.o \
+		../bitmap-engine/BitmapEngine/src/wah/WAHQuery.c
+	@$(CC) -c -o $(BIN)/SegUtil.o \
+		../bitmap-engine/BitmapEngine/src/seg-util/SegUtil.c
+
+.slave: .rpc .engine
+	@echo "Compiling Slave"
+	@$(CC) -c -o $(BIN)/slave_rq.o \
+		$(RPC_BIN)/rq_xdr.o \
+		$(RPC_BIN)/rq_svc.o \
+		$(RPC_BIN)/rq_clnt.o \
+		slave/slave_rq.c
+	@echo "Compiling Slave Main"
+	@$(CC) -o $(BIN)/slave \
+		$(BIN)/slave_rq.o \
+		$(BIN)/WAHQuery.o \
+		$(BIN)/SegUtil.o \
+		slave/slave.c \
+		-lssl -lcrypto -lm
+
 .dbms:
 	@echo "Compiling DBMS"
 	@$(CC) -o $(BIN)/dbms dbms/dbms.c

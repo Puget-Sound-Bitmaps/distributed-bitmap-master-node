@@ -5,6 +5,9 @@
 #include "../rpc/gen/rq.h"
 #include "../master/slavelist.h"
 
+#include "../../bitmap-engine/BitmapEngine/src/seg-util/SegUtil.h"
+#include "../../bitmap-engine/BitmapEngine/src/wah/WAHQuery.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,13 +17,13 @@ query_result get_vector(u_int vec_id) {
     /* Turn vec_id into the filename "vec_id.dat" */
     int number_size = (vec_id == 0 ? 1 : (int) (log10(vec_id) + 1));
     int filename_size = number_size + 4; /* ".dat" */
-    char filename[filename_size];
+    char *filename = (char *) malloc(filename_size * sizeof(char));
     snprintf (filename, filename_size, "%u.dat", vec_id);
 
     /* Necessary Variables */
-    FILE *file_pointer;
-    u_int64_t *vector_val;
-    u_int vector_len;
+    FILE *file_pointer = NULL;
+    u_int64_t *vector_val = NULL;
+    u_int vector_len = 0;
     u_int exit_code = EXIT_SUCCESS;
 
     /* Open file in binary mode. */
@@ -42,27 +45,29 @@ query_result get_vector(u_int vec_id) {
         fclose(file_pointer);
     }
 
+    free(filename);
+
     query_result vector = { {vector_len, vector_val}, exit_code };
     return vector;
 }
 
 query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
 {
-    query_result *this_result;
-    query_result *next_result;
+    query_result *this_result = NULL;
+    query_result *next_result = NULL;
 
     u_int exit_code = EXIT_SUCCESS;
 
-    this_result = get_vector(query.vec_id);
+    *this_result = get_vector(query.vec_id);
 
     /* Something went wrong with reading the vector. */
     if (this_result->exit_code != EXIT_SUCCESS) {
-        return &this_result;
+        return this_result;
     }
 
     /* We are the final call. */
     else if (query.next == NULL) {
-        return &this_result;
+        return this_result;
     }
 
     /* Recursive Query */
@@ -91,12 +96,12 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
     /* Something went wrong with the recursive call. */
     if (next_result->exit_code != EXIT_SUCCESS) {
         this_result->exit_code = next_result->exit_code;
-        return &this_result;
+        return this_result;
     }
 
     /* Our final return values. */
-    query_result *result_val;
-    u_int result_len;
+    query_result *result_val = NULL;
+    u_int result_len = 0;
 
     /*  TODO:
      *  Return the vector, not the vector's ID.
@@ -116,7 +121,7 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
         printf("Error: Unknown Operator\n");
     }
 
-    query_result *vector = { {result_len, result_val}, exit_code };
+    query_result vector = { {result_len, result_val}, exit_code };
     return &vector;
 }
 
