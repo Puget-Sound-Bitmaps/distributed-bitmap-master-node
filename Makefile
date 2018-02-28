@@ -7,7 +7,7 @@ CFLAGS := -Wall
 CIGNORE := -Wno-incompatible-pointer-types -Wno-unused-command-line-argument
 CC := gcc $(CFLAGS) $(CIGNORE)
 
-all: clean .master .dbms
+all: clean .master .slave .dbms
 
 clean:
 	@echo "Cleaning..."
@@ -46,7 +46,8 @@ $(BIN)/tree_map.o:
 		$(RPC_BIN)/rq_xdr.o \
 		$(RPC_BIN)/rq_svc.o \
 		$(RPC_BIN)/rq_clnt.o \
-		slave/slave_rq.c
+		slave/slave_rq.c \
+		-pthread
 	@echo "Compiling Slave Main"
 	@$(CC) -o $(BIN)/slave \
 		$(BIN)/WAHQuery.o \
