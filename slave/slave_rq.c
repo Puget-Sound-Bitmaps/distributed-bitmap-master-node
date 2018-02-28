@@ -5,6 +5,7 @@
 #include "../rpc/gen/rq.h"
 #include "../master/slavelist.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -13,7 +14,7 @@ query_result read_vector(u_int vec_id) {
     /* Turn vec_id into the filename "vec_id.dat" */
     int number_size = (vec_id == 0 ? 1 : (int) (log10(vec_id) + 1));
     int filename_size = number_size + 4 /* ".dat" */
-    char filename[filename_size];
+    char *filename[filename_size];
     snprintf (filename, filename_size, "%u.dat", vec_id);
 
     /* Necessary Variables */
@@ -55,18 +56,18 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
     this_result = get_vector(query.vec_id);
 
     /* Something went wrong with reading the vector. */
-    if (this_result.exit_code != EXIT_SUCCESS) {
+    if (this_result->exit_code != EXIT_SUCCESS) {
         return &this_result;
     }
 
     /* We are the final call. */
-    else if (next == NULL) {
+    else if (query.next == NULL) {
         return &this_result;
     }
 
     /* Recursive Query */
     else {
-        char *next_host = query.next_machine_addr_val;
+        char *next_host = query.machine_addr;
 
         CLIENT *client;
         client = clnt_create(host,
@@ -88,8 +89,8 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
     }
 
     /* Something went wrong with the recursive call. */
-    if (next_result.exit_code != EXIT_SUCCESS) {
-        this_result.exit_code = next_result.exit_code;
+    if (next_result->exit_code != EXIT_SUCCESS) {
+        this_result->exit_code = next_result->exit_code;
         return &this_result;
     }
 
