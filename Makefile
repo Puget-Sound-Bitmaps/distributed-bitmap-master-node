@@ -46,6 +46,7 @@ $(BIN)/tree_map.o:
 	@echo "Compiling Slave Main"
 	@$(CC) -o $(BIN)/slave \
 		$(RPC_BIN)/rq_svc.o \
+		$(RPC_BIN)/rq_clnt.o \
 		$(RPC_BIN)/rq_xdr.o \
 		$(BIN)/slave_rq.o \
 		$(BIN)/WAHQuery.o \

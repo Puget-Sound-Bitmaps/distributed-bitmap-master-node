@@ -13,13 +13,12 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-query_result get_vector(u_int vec_id) {
+query_result *get_vector(u_int vec_id) {
     /* Turn vec_id into the filename "vec_id.dat" */
     int number_size = (vec_id == 0 ? 1 : (int) (log10(vec_id) + 1));
     int filename_size = number_size + 4; /* ".dat" */
     char filename[filename_size];
     snprintf (filename, filename_size * sizeof(char), "%u.dat", vec_id);
-
     /* Necessary Variables */
     FILE *file_pointer = NULL;
     u_int64_t *vector_val = NULL;
@@ -28,7 +27,6 @@ query_result get_vector(u_int vec_id) {
 
     /* Open file in binary mode. */
     file_pointer = fopen(filename, "rb");
-
     if (file_pointer == NULL) {
         exit_code = EXIT_FAILURE ^ vec_id;
     }
@@ -44,25 +42,24 @@ query_result get_vector(u_int vec_id) {
         fread(vector_val, vector_len, 1, file_pointer);
         fclose(file_pointer);
     }
-
-    query_result vector = { {vector_len, vector_val}, exit_code };
+    query_result *vector = (query_result *) malloc(sizeof(query_result));
+    vector->vector.vector_val = vector_val;
+    vector->vector.vector_len = vector_len;
+    vector->exit_code = exit_code;
     return vector;
 }
 
 query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
 {
-    query_result *this_result = NULL;
+    query_result *this_result;
     query_result *next_result = NULL;
 
     u_int exit_code = EXIT_SUCCESS;
-
-    *this_result = get_vector(query.vec_id);
-
+    this_result = get_vector(query.vec_id);
     /* Something went wrong with reading the vector. */
     if (this_result->exit_code != EXIT_SUCCESS) {
         return this_result;
     }
-
     /* We are the final call. */
     else if (query.next == NULL) {
         return this_result;
@@ -137,28 +134,21 @@ void *init_coordinator_thread(void *coord_args) {
     // TODO: get a query result
     coord_thread_args *args = (coord_thread_args *) coord_args;
 
-    // Testing Zone
-    printf("In thread %d", args->query_result_index);
-    rq_pipe_args *pipe_args = args->args;
-    while (pipe_args != NULL) {
-        printf("Machine: %s\n", pipe_args->machine_addr);
-        pipe_args = pipe_args->next;
-    }
-    printf("\n");
-    // END TEST
-
     CLIENT *clnt = clnt_create(args->args->machine_addr, REMOTE_QUERY_PIPE, REMOTE_QUERY_PIPE_V1, "tcp");
-    query_result *res = rq_pipe_1_svc(*(args->args), clnt);
+    if (clnt == NULL) {
+        printf("client is null\n");
+    }
+    query_result *res = rq_pipe_1(*(args->args), clnt);
     if (res == NULL) {
         printf("Query to %s failed\n", args->args->machine_addr);
         return (void *) 1;
     }
-    else
+    else {
         results[args->query_result_index] = res;
+    }
     return (void *) 0;
 }
 
-// TODO Sam
 query_result *rq_range_root_1_svc(rq_range_root_args query, struct svc_req *req)
 {
     // TODO: spawn a thread for each range
@@ -170,10 +160,9 @@ query_result *rq_range_root_1_svc(rq_range_root_args query, struct svc_req *req)
     int i;
     int array_index = 0;
     for (i = 0; i < num_threads; i++) {
-        // coordinator arguments
-        // TODO:
-        int num_nodes = range_array[array_index];
+        int num_nodes = range_array[array_index++];
         rq_pipe_args *pipe_args = (rq_pipe_args *) malloc(sizeof(rq_pipe_args) * num_nodes);
+        rq_pipe_args *head_args = pipe_args;
         int j;
         for (j = 0; j < num_nodes; j++) {
             pipe_args->machine_addr = SLAVE_ADDR[range_array[array_index++]];
@@ -184,18 +173,19 @@ query_result *rq_range_root_1_svc(rq_range_root_args query, struct svc_req *req)
                 pipe_args->next = next_args;
                 pipe_args = next_args;
             }
-            else
+            else {
                 pipe_args->next = NULL;
+            }
         }
 
         coord_thread_args *thread_args = (coord_thread_args *) malloc(sizeof(coord_thread_args));
         thread_args->query_result_index = i;
-        thread_args->args = pipe_args;
+        thread_args->args = head_args;
 
         // allocate the appropriate number of args
         pthread_create(&tids[i], NULL, init_coordinator_thread, (void *) thread_args);
     }
-    // TODO AND all the results together and just print it out for now.
+    // TODO AND all the results together
     query_result *res = (query_result *) malloc(sizeof(query_result));
     return res;
 }
