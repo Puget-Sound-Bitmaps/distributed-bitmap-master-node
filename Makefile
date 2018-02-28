@@ -45,13 +45,11 @@ $(BIN)/tree_map.o:
 	@$(CC) -c -o $(BIN)/slave_rq.o slave/slave_rq.c
 	@echo "Compiling Slave Main"
 	@$(CC) -o $(BIN)/slave \
+		$(RPC_BIN)/rq_svc.o \
+		$(RPC_BIN)/rq_xdr.o \
+		$(BIN)/slave_rq.o \
 		$(BIN)/WAHQuery.o \
 		$(BIN)/SegUtil.o \
-		$(RPC_BIN)/rq_xdr.o \
-		$(RPC_BIN)/rq_svc.o \
-		$(RPC_BIN)/rq_clnt.o \
-		$(BIN)/slave_rq.o \
-		slave/slave.c \
 		-lssl -lcrypto -lm -lpthread
 
 .dbms:

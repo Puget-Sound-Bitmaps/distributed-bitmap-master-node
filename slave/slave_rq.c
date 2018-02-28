@@ -83,7 +83,7 @@ query_result *rq_pipe_1_svc(rq_pipe_args query, struct svc_req *req)
             exit_code = EXIT_FAILURE;
         }
         else {
-            next_result = rq_pipe_1(*(query.next), client);
+            next_result = rq_pipe_1_svc(*(query.next), client);
 
             if (next_result == NULL) {
                 clnt_perror(client, "call failed:");
@@ -161,11 +161,11 @@ void *init_coordinator_thread(void *coord_args) {
 }
 
 // TODO Sam
-query_result *rq_root_1_svc(rq_range_root_args *query, struct svc_req *req)
+query_result *rq_range_root_1_svc(rq_range_root_args query, struct svc_req *req)
 {
     // TODO: spawn a thread for each range
-    int num_threads = query->num_ranges;
-    unsigned int *range_array = query->range_array.range_array_val;
+    int num_threads = query.num_ranges;
+    unsigned int *range_array = query.range_array.range_array_val;
     pthread_t tids[num_threads];
     // the results to be anded together (in general, OP)
     results = (query_result **) malloc(sizeof(query_result *) * num_threads);

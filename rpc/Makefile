@@ -29,11 +29,11 @@ $(RQ_CLNT): $(GEN)/rq_clnt.c $(GEN)/rq.h
 
 $(RQ_SVC): $(GEN)/rq_svc.c $(GEN)/rq.h
 	@echo "Compiling Remote-Query Service"
-	@$(CC) -c -o $(RQ_SVC) $(GEN)/rq_clnt.c
+	@$(CC) -c -o $(RQ_SVC) $(GEN)/rq_svc.c
 
 $(RQ_XDR): $(GEN)/rq_xdr.c $(GEN)/rq.h
 	@echo "Compiling Remote-Query XDR"
-	@$(CC) -c -o $(RQ_XDR) $(GEN)/rq_clnt.c
+	@$(CC) -c -o $(RQ_XDR) $(GEN)/rq_xdr.c
 
 ####################
 # Two-Phase Commit #
