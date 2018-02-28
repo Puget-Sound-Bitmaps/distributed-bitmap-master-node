@@ -49,6 +49,6 @@ struct rq_range_root_args {
 
 program REMOTE_QUERY_ROOT {
     version REMOTE_QUERY_ROOT_V1 {
-        int RQ_RANGE_ROOT(rq_range_root_args) = 1;
+        query_result RQ_RANGE_ROOT(rq_range_root_args) = 1;
     } = 1;
 } = 0x10;
