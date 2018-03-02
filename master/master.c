@@ -115,9 +115,6 @@ int main(int argc, char *argv[])
             else if (request->mtype == mtype_range_query) {
                 range_query_contents contents = request->range_query;
                 int i;
-                // TODO allocate ranges array
-                // this array will eventually include data for the coordinator RPC
-                // as described in the documentation.
                 int num_ints_needed = 0;
                 for (i = 0; i < contents.num_ranges; i++) {
                     unsigned int *range = contents.ranges[i];
@@ -127,35 +124,37 @@ int main(int argc, char *argv[])
                     int row_len = (range[1] - range[0] + 1) * 2 + 1;
                     num_ints_needed += row_len;
                 }
-                unsigned int *range_array = (unsigned int *) malloc(sizeof(unsigned int) * num_ints_needed);
+                /* this array will eventually include data for the coordinator
+                   slave's RPC  as described in the distributed system wiki. */
+                unsigned int *range_array = (unsigned int *)
+                    malloc(sizeof(unsigned int) * num_ints_needed);
                 int array_index = 0;
                 for (i = 0; i < contents.num_ranges; i++) {
                     unsigned int *range = contents.ranges[i];
                     vec_id_t j;
                     // start of range is number of vectors
                     range_array[array_index++] = range[1] - range[0] + 1;
-                    printf("inserting number of elements: %d\n", range[1] - range[0] + 1);
                     unsigned int **machine_vec_ptrs = (unsigned int **)
                         malloc(sizeof(int *) * (range[1] - range[0] + 1));
-                    //printf("Allocated tuples\n");
                     for (j = range[0]; j <= range[1]; j++) {
                         unsigned int *tuple = (unsigned int *)
                             malloc(sizeof(unsigned int) * 2);
                         tuple[0] = get_machine_for_vector(chash_table, j);
                         tuple[1] = j;
-                        printf("Tuple[0] = %d, Tuple[1] = %d\n", tuple[0], tuple[1]);
                         machine_vec_ptrs[j - range[0]] = tuple;
                     }
 
-                    qsort(machine_vec_ptrs, range[1] - range[0], sizeof(unsigned int) * 2,
-                        compare_machine_vec_tuple);
+                    qsort(machine_vec_ptrs, range[1] - range[0],
+                        sizeof(unsigned int) * 2, compare_machine_vec_tuple);
 
                     /* save machine/vec IDs into the array */
+                    int tuple_index;
                     for (j = range[0]; j <= range[1]; j++) {
-                        printf("inserting machine ID %d\n", machine_vec_ptrs[j - range[0]][0]);
-                        range_array[array_index++] = machine_vec_ptrs[j - range[0]][0];
-                        printf("inserting vector ID %d\n", machine_vec_ptrs[j - range[0]][1]);
-                        range_array[array_index++] = machine_vec_ptrs[j - range[0]][1];
+                        tuple_index = j - range[0];
+                        range_array[array_index++] =
+                            machine_vec_ptrs[tuple_index][0];
+                        range_array[array_index++] =
+                            machine_vec_ptrs[tuple_index][1];
                     }
 
                     for (j = range[0]; j <= range[1]; j++) {
@@ -163,41 +162,7 @@ int main(int argc, char *argv[])
                     }
                     free(machine_vec_ptrs);
                 }
-                // NB: range array passed to coordinator structure looks like this
-                /*
-                    unsigned int *range_array = {
-                        2, m(1), 1, m(2), 2,
-                        2, m(3), 3, m(4), 4,
-                        2, m(5), 5, m(6), 6
-                    }
-                    For the example of R:[0,9]&[10,15]&[20,27] (*unsorted*)
-                    unsigned int *range_array = {
-                        10, m(0), 0, m(1), 1, m(2), 2, m(3), 3, m(4), 4, m(5), 5, m(6), 6, m(7), 7, m(8), 8, m(9), 9,
-                        6, m(10), 10
-                    }
-                    where m(i) is the machine address of vector with id i.
-                    Format of array: each subarray contains the following information:
-                    Number of vectors in this range, n.
-                    The subsequent 2n elements alternate between machine IDs and the vectors
-                    we want from that machine.
-                    Machine ID is just an index in this array
-                    char **machine_addrs = {
-                        "123", "456", "789"
-                    }
-                    So machine with ID = 0 has address 123.
-                    int num_ranges, so the coordinator knows rightaway how many threads to spawn.
-                    int array_length
-                }
-                */
-                // for (i = 0; i < array_index; i++) {
-                //
-                //     printf("%d ", range_array[i]);
-                //     if (i == new_ctr) {
-                //         printf("\n");
-                //         new_ctr += range_array[i];
-                //     }
-                // }
-                printf("\n");
+
                 init_range_query(range_array, contents.num_ranges, contents.ops, array_index);
             }
             else if (request->mtype == mtype_point_query) {
