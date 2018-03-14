@@ -2,7 +2,7 @@
 #include "tpc_master.h"
 #include "master_rq.h"
 #include "../ipc/messages.h"
-#include "../rpc/gen/rq.h"
+//#include "../rpc/gen/rq.h"
 #include "slavelist.h"
 #include "../consistent-hash/ring/src/tree_map.h"
 #include "../types/types.h"
@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
         insert_cache(chash_table, cptr);
         free(cptr);
     }
-    printf("entering loop\n");
     while (true) {
         msgctl(msq_id, IPC_STAT, &buf);
 
@@ -107,6 +106,13 @@ int main(int argc, char *argv[])
                     get_machine_for_vector(chash_table, vec_id_3)
                 ];
                 */
+                if (NUM_SLAVES == 1) {
+                    printf("about to put vector\n");
+                    //printf("putting %llu\n...\n", value);
+                    printf("Putting a vector %u:%llu to %s\n", request->vector.vec_id, request->vector.vec.vector[0], SLAVE_ADDR[0]);
+                    printf("commit call\n");
+                    commit_vector(request->vector.vec_id, request->vector.vec, SLAVE_ADDR, 1);
+                }
                 // TODO ensure slave_1 != slave_2 != slave_3
                 // TODO: call commit_vector RPC function here
                 //commit_vector(request->vector.vec_id, request->vector.vec,

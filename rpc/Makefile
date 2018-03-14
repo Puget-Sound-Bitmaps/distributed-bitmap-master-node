@@ -10,30 +10,31 @@ RPCGEN := rpcgen -C -N
 all: clean compile
 
 ################
-# Remote Query #
+# Slave #
 ################
 
-RQ_CLNT = $(BIN)/rq_clnt.o
-RQ_SVC = $(BIN)/rq_svc.o
-RQ_XDR = $(BIN)/rq_xdr.o
+SLAVE_CLNT = $(BIN)/slave_clnt.o
+SLAVE_SVC = $(BIN)/slave_svc.o
+SLAVE_XDR = $(BIN)/slave_xdr.o
 
-RQ_BIN = $(RQ_CLNT) $(RQ_SVC) $(RQ_XDR)
-RQ_GEN = $(GEN)/rq_clnt.c $(GEN)/rq_svc.c $(GEN)/rq_xdr.c $(GEN)/rq.h
+SLAVE_BIN = $(SLAVE_CLNT) $(SLAVE_SVC) $(SLAVE_XDR)
+SLAVE_GEN = $(GEN)/slave_clnt.c $(GEN)/slave_svc.c $(GEN)/slave_xdr.c $(GEN)/slave.h
 
-$(RQ_GEN): $(SRC)/rq.x
-	@cd src && $(RPCGEN) rq.x && mv rq.h rq_* ../gen/
+$(SLAVE_GEN): $(SRC)/slave.x
+	@echo "Slave Gen"
+	@cd src && $(RPCGEN) slave.x && mv slave.h slave_* ../gen/
 
-$(RQ_CLNT): $(GEN)/rq_clnt.c $(GEN)/rq.h
-	@echo "Compiling Remote-Query Client"
-	@$(CC) -c -o $(RQ_CLNT) $(GEN)/rq_clnt.c
+$(SLAVE_CLNT): $(GEN)/slave_clnt.c $(GEN)/slave.h
+	@echo "Compiling Slave Client"
+	@$(CC) -c -o $(SLAVE_CLNT) $(GEN)/slave_clnt.c
 
-$(RQ_SVC): $(GEN)/rq_svc.c $(GEN)/rq.h
-	@echo "Compiling Remote-Query Service"
-	@$(CC) -c -o $(RQ_SVC) $(GEN)/rq_svc.c
+$(SLAVE_SVC): $(GEN)/slave_svc.c $(GEN)/slave.h
+	@echo "Compiling Slave Service"
+	@$(CC) -c -o $(SLAVE_SVC) $(GEN)/slave_svc.c
 
-$(RQ_XDR): $(GEN)/rq_xdr.c $(GEN)/rq.h
-	@echo "Compiling Remote-Query XDR"
-	@$(CC) -c -o $(RQ_XDR) $(GEN)/rq_xdr.c
+$(SLAVE_XDR): $(GEN)/slave_xdr.c $(GEN)/slave.h
+	@echo "Compiling Slave XDR"
+	@$(CC) -c -o $(SLAVE_XDR) $(GEN)/slave_xdr.c
 
 ####################
 # Two-Phase Commit #
@@ -65,7 +66,7 @@ $(TPC_XDR): $(GEN)/tpc_xdr.c $(GEN)/tpc.h
 # General #
 ###########
 
-compile: $(RQ_BIN) $(TPC_BIN)
+compile: $(SLAVE_BIN) #$(TPC_BIN)
 
 clean:
 	@echo "Cleaning..."

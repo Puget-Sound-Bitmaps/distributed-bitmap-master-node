@@ -14,6 +14,17 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+
+void test_put_vec_len_1(int queue_id, int vec_id, unsigned long long vec) {
+    vec_t *v = (vec_t *)malloc(sizeof(vec_t));
+	unsigned long long *vector = (unsigned long long *)malloc(sizeof(unsigned long long) * MAX_VECTOR_LEN);
+	//vector[0] = vec;
+	unsigned long long varr[] = {vec};
+	memcpy(v->vector, varr, sizeof(unsigned long long));
+	v->vector[0] = vec;
+    v->vector_length = 1;
+    put_vector(queue_id, vec_id, v);
+}
 /**
  * Database Management System (DBMS)
  *
@@ -45,13 +56,18 @@ int main(int argc, char *argv[])
     /* Create message queue. */
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
 
-    // put_vector(msq_id, 1, 0x00ab);
-    // put_vector(msq_id, 2, 0x10c0);
-    // put_vector(msq_id, 3, 0x0781);
-    // put_vector(msq_id, 4, 0x99ff);
-    char range[] = "R:[0,9]&[10,15]&[20,27]";
-    range_query(msq_id, range);
+    /* TEST put_vector */
 
+    test_put_vec_len_1(msq_id, 1, 0x00ab);
+    test_put_vec_len_1(msq_id, 2, 0x10c0);
+    test_put_vec_len_1(msq_id, 3, 0x0781);
+    test_put_vec_len_1(msq_id, 4, 0x99ff);
+
+    /* testing range query */
+	//printf("Range query\n");
+    char range[] = "R:[1,4]";
+    range_query(msq_id, range);
+	printf("Waiting on master...\n");
     int master_result = 0;
     wait(&master_result);
 
@@ -66,12 +82,22 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
 }
 
-int put_vector(int queue_id, vec_id_t vec_id, vec_t vec)
+int put_vector(int queue_id, vec_id_t vec_id, vec_t *vec)
 {
     msgbuf *put = (msgbuf *) malloc(sizeof(msgbuf));
     put->mtype = mtype_put;
-    put->vector = (assigned_vector) { vec_id, vec };
+    printf("put_vector: Vec len: %u, val: %llu\n", vec->vector_length, vec->vector[0]);
+    assigned_vector *av = (assigned_vector *) malloc(sizeof(assigned_vector));
+    av->vec_id = vec_id;
+    av->vec = *vec;
+    put->vector = *av;
+	printf("Passing vector value %llu\n", put->vector.vec.vector[0]);
+
     msgsnd(queue_id, put, sizeof(msgbuf), 0);
+	//free(vec->vector);
+	free(vec);
+    free(av);
+    free(put);
     return EXIT_SUCCESS;
 }
 

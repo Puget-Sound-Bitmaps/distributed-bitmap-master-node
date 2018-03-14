@@ -7,7 +7,7 @@
 static char *MASTER_EXECUTABLE = "./master";
 static char *REPLICATION_FACTOR = "3";
 
-int put_vector(int, vec_id_t, vec_t);
+int put_vector(int, vec_id_t, vec_t*);
 int point_query(int, char *);
 int range_query(int, char *);
 

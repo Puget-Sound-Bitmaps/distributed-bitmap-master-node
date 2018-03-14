@@ -22,16 +22,21 @@ $(BIN)/tree_map.o:
 	@echo "Compiling RPC modules"
 	@cd rpc && make
 
-.master: .rpc $(BIN)/tree_map.o
+.master: .slave .rpc $(BIN)/tree_map.o
 	@echo "Compiling Master"
 	@$(CC) -c -o $(BIN)/master_rq.o \
-		$(RPC_BIN)/rq_xdr.o $(RPC_BIN)/rq_clnt.o \
 		master/master_rq.c
+	@$(CC) -c -o $(BIN)/master_tpc.o \
+		master/master_tpc_vector.c
 	@echo "Compiling master main"
 	@$(CC) -o $(BIN)/master \
-		$(BIN)/tree_map.o $(BIN)/master_rq.o \
+		$(RPC_BIN)/slave_clnt.o \
+		$(RPC_BIN)/slave_xdr.o \
+		$(BIN)/tree_map.o \
+		$(BIN)/master_rq.o \
+		$(BIN)/master_tpc.o \
 		master/master.c \
-		-lssl -lcrypto -lm
+		-lssl -lcrypto -lm -lpthread
 
 .engine:
 	@echo "Compiling Bitmap Engine Pieces"
@@ -42,15 +47,12 @@ $(BIN)/tree_map.o:
 
 .slave: .rpc .engine
 	@echo "Compiling Slave"
-	@$(CC) -c -o $(BIN)/slave_rq.o slave/slave_rq.c
-	@echo "Compiling Slave Main"
 	@$(CC) -o $(BIN)/slave \
-		$(RPC_BIN)/rq_svc.o \
-		$(RPC_BIN)/rq_clnt.o \
-		$(RPC_BIN)/rq_xdr.o \
-		$(BIN)/slave_rq.o \
+		$(RPC_BIN)/slave_svc.o \
+		$(RPC_BIN)/slave_xdr.o \
 		$(BIN)/WAHQuery.o \
 		$(BIN)/SegUtil.o \
+		slave/slave.c \
 		-lssl -lcrypto -lm -lpthread
 
 .dbms:

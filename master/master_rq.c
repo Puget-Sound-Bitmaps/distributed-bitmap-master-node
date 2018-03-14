@@ -3,9 +3,7 @@
  */
 
 #include "master_rq.h"
-#include "../rpc/gen/rq.h"
-#include "../rpc/gen/rq_xdr.c"
-#include "../rpc/gen/rq_clnt.c"
+#include "../rpc/gen/slave.h"
 #include "slavelist.h"
 #include <stdio.h>
 #include <string.h>
@@ -25,8 +23,9 @@ int init_range_query(unsigned int *range_array, int num_ranges, char *ops, int a
     if (cl == NULL) {
         printf("Error: could not connect to coordinator %s.\n", coordinator);
     }
+	printf("Calling range root\n");
     rq_range_root_1(*root, cl);
-
+	printf("Range root complete\a\n");
     free(root);
     return EXIT_SUCCESS;
 }

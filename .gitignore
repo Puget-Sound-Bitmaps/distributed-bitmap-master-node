@@ -4,5 +4,5 @@ bin/
 # rpcgen output
 gen/
 
-# vector file
-vectors.txt
+# vectors
+dat/
