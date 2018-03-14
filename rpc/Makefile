@@ -36,37 +36,11 @@ $(SLAVE_XDR): $(GEN)/slave_xdr.c $(GEN)/slave.h
 	@echo "Compiling Slave XDR"
 	@$(CC) -c -o $(SLAVE_XDR) $(GEN)/slave_xdr.c
 
-####################
-# Two-Phase Commit #
-####################
-
-TPC_CLNT = $(BIN)/tpc_clnt.o
-TPC_SVC = $(BIN)/tpc_svc.o
-TPC_XDR = $(BIN)/tpc_xdr.o
-
-TPC_BIN = $(TPC_CLNT) $(TPC_SVC) $(TPC_XDR)
-TPC_GEN = $(GEN)/tpc_clnt.c $(GEN)/tpc_svc.c $(GEN)/tpc_xdr.c $(GEN)/tpc.h
-
-$(TPC_GEN): $(SRC)/tpc.x
-	@cd src && $(RPCGEN) tpc.x && mv tpc.h tpc_* ../gen/
-
-$(TPC_CLNT): $(GEN)/tpc_clnt.c $(GEN)/tpc.h
-	@echo "Compiling TPC Client"
-	@$(CC) -c -o $(TPC_CLNT) $(GEN)/tpc_clnt.c
-
-$(TPC_SVC): $(GEN)/tpc_svc.c $(GEN)/tpc.h
-	@echo "Compiling TPC Service"
-	@$(CC) -c -o $(TPC_SVC) $(GEN)/tpc_clnt.c
-
-$(TPC_XDR): $(GEN)/tpc_xdr.c $(GEN)/tpc.h
-	@echo "Compiling TPC XDR"
-	@$(CC) -c -o $(TPC_XDR) $(GEN)/tpc_clnt.c
-
 ###########
 # General #
 ###########
 
-compile: $(SLAVE_BIN) #$(TPC_BIN)
+compile: $(SLAVE_BIN)
 
 clean:
 	@echo "Cleaning..."
