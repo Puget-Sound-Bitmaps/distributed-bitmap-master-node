@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
                 printf("Error: could not connect to slave %s.\n", args[i + 1]);
                 continue;
             }
-            int *result = commit_vec_1(cargs, cl);
+            int *result = commit_vec_1(*cargs, cl);
             printf("Result = %d\n", *result);
             if (result == NULL) {
                 printf("Commit failed.\n");
@@ -144,7 +144,7 @@ void *get_commit_resp(void *tid)
 // FIXME breaks when put in thread, for some reason.
 void *commit_bit_vector(void *arg)
 {
-    struct thread_arg* a = (struct thread_arg*)arg;
+    struct thread_arg* a = (struct thread_arg *) arg;
     pthread_t tid = a->tid;
     int i = (int) tid;
     printf("about to commit %d: %lu\n", a->commit_args->vec_id, a->commit_args->vec);
@@ -154,7 +154,7 @@ void *commit_bit_vector(void *arg)
         printf("Error: could not connect to slave %s.\n", args[i + 1]);
         return (void*) 1;
     }
-    int *result = commit_vec_1(a->commit_args, cl);
+    int *result = commit_vec_1(*(a->commit_args), cl);
     printf("Result = %d\n", *result);
     if (result == NULL) {
         printf("Commit failed.\n");
