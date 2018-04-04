@@ -31,6 +31,7 @@ node_ptr rbt_max(rbt_ptr, node_ptr);
 void rbt_delete(rbt_ptr, node_ptr);
 void rbt_delete_fixup(rbt_ptr, node_ptr);
 node_ptr pred(rbt_ptr, hash_value);
+node_ptr get_node_with_hv(rbt_ptr, hash_value);
 
 /*
  * The cache_id of the node n in the tree with the smallest hash_value hv
@@ -110,6 +111,21 @@ node_ptr succ(rbt_ptr t, hash_value value)
         return rbt_min(t, curr);
     }
     return recur_succ(t, t->root, t->root, value);
+}
+
+node_ptr get_node_with_hv(rbt_ptr t, hash_value hv)
+{
+    node_ptr res = t->root;
+    while (res->hv != hv) {
+        if (res->hv < hv) res = res->right;
+        else res = res->left;
+    }
+    return res;
+}
+
+void delete_entry(rbt_ptr t, hash_value hv)
+{
+    rbt_delete(t, get_node_with_hv(t, hv));
 }
 
 void print_tree(rbt_ptr t, node_ptr c)

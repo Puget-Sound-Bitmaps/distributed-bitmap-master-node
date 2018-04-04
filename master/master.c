@@ -32,7 +32,7 @@ rbt_ptr chash_table;
 int *partition_scale_1, *partition_scale_2; // partitions and backups
 unsigned int num_keys; /* e.g., value of largest known key, plus 1 */
 
-extern unsigned int max_vector_len;
+unsigned int max_vector_len;
 
 /**
  * Master Process
@@ -63,7 +63,6 @@ int main(int argc, char *argv[])
     // index in slave list will be the machine ID (0 is master)
     slavelist = (slave_ll *) malloc(sizeof(slave_ll));
     slave_ll *head = slavelist;
-    slave *dead_slave; /* slave that is currently down, waiting replacement/reactivation... */
     int i;
     for (i = 0; i < num_slaves; i++) {
         slave *s = new_slave(SLAVE_ADDR[i]);
@@ -101,10 +100,12 @@ int main(int argc, char *argv[])
                 free(cptr);
                 head = head->next;
             }
+            break;
         }
 
         case JUMP_CH: {
             // TODO setup jump
+            break;
         }
 
         case STATIC_PARTITION: {
@@ -119,6 +120,7 @@ int main(int argc, char *argv[])
                 head = head->next;
             }
             separation = num_keys / num_slaves;
+            break;
         }
     }
 
@@ -165,15 +167,16 @@ int main(int argc, char *argv[])
                     case STARFISH: {
                         while (starfish(contents))
                             heartbeat();
+                        break;
                     }
                     case UNISTAR: {
-
+                        break;
                     }
                     case MULTISTAR: {
-
+                        break;
                     }
                     case ITER_PRIM: {
-
+                        break;
                     }
                 }
             }
@@ -320,7 +323,7 @@ void reallocate()
                 send_vector(succ, vec->id, sucsuc);
                 vec = vec->next;
             }
-            rbt_delete(chash_table, dead_slave->id);
+            delete_entry(chash_table, dead_slave->id);
         }
     }
 }
@@ -338,6 +341,7 @@ unsigned int *get_machines_for_vector(vec_id_t vec_id)
 
         case JUMP_CH: {
             // TODO Jahrme
+            return NULL;
         }
 
         case STATIC_PARTITION: {

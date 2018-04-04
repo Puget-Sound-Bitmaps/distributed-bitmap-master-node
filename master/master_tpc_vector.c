@@ -178,9 +178,10 @@ int send_vector(slave *slave_1, vec_id_t vec_id, slave *slave_2)
     clnt_control(cl, CLSET_TIMEOUT, &tv);
     copy_vector_args args;
     args.vec_id = vec_id;
-    memcpy(args.destination_addr, slave_2->address, sizeof(slave_2->address));
-    int res = send_vec_1(args, cl);
+    char *addr = slave_2->address;
+    memcpy(args.destination_addr, addr, (strlen(addr) + 1) * sizeof(char));
+    int *res = send_vec_1(args, cl);
     clnt_destroy(cl);
     //free(args);
-    return res;
+    return *res;
 }

@@ -44,5 +44,6 @@ int starfish(range_query_contents);
 int get_new_slave_id(void);
 slave *new_slave(char *address);
 int compare_machine_vec_tuple(const void *, const void *);
+int remove_slave(unsigned int);
 
 #endif /* MASTER_H */
