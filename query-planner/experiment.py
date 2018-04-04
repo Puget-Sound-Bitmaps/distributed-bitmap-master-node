@@ -6,7 +6,6 @@ import time
 # TODO Jahrme query planners
 sys.path.insert(0,'./iter-mst/')
 import mst_planner
-# create experiment data
 
 """
     Experiment 1: generate some random queries and print how long each
@@ -22,7 +21,6 @@ global querys
 
 querys = []
 rand_vec_ids = [[randint(0, num_vectors - 1) for i in range(query_len)] for k in range(num_experiments)]
-# emulate consistent hashing, sort of
 
 _vec_mn_hfn = lambda k: int(md5(str(k).encode()).hexdigest(), 16) % num_machines
 current_milli_time = lambda : time.time() * 1000

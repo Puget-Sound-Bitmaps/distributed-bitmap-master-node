@@ -11,13 +11,10 @@ int put_vector(int, vec_id_t, vec_t*);
 int point_query(int, char *);
 int range_query(int, char *);
 
-#define BASIC_TEST 0
-#define POLITICAL_DATA_TEST 1
+enum {BASIC_TEST, POLITICAL_DATA_TEST, WORLD_TEST, TPCORG_C_TEST};
+/* TPC C benchmarking test named TPCORG to avoid confusion with
+ * two-phase commit */
 
-#define RING_CH 0
-#define JUMP_CH 1
-#define STATIC_PART 2
-
-#define PARITION_TYPE
+enum {RING_CH, JUMP_CH, STATIC_PART};
 
 #endif /* DBMS_H */

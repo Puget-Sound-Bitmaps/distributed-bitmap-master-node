@@ -232,15 +232,7 @@ rq_range_root_1_svc(rq_range_root_args query, struct svc_req *req)
     for (i = 0; i < num_threads; i++) {
         pthread_join(tids[i], NULL);
         /* assuming a single point of failure, report on the failed slave */
-        // XXX: this isn't really fault tolerant for a couple reasons:
-        // 1. assumes 1 failure
-        // 2. none of the other results are reported. I think if one of them
-        // TODO: move this to the fault tolerance branch
         if (results[i]->exit_code != EXIT_SUCCESS) {
-            // for (; i < num_threads; i++) pthread_join(tids[i], NULL);
-            // memcpy(res, results[i], sizeof(results[i]));
-            // free_res(num_threads);
-            // return results[i];
             res->exit_code = results[i]->exit_code;
             char *msg = results[i]->error_message;
             memcpy(res->error_message, msg, (strlen(msg) + 1) * sizeof(char));
@@ -314,7 +306,7 @@ int *commit_vec_1_svc(struct commit_vec_args args, struct svc_req *req)
 	printf("SLAVE: Putting vector %u\n", args.vec_id);
     FILE *fp;
     char filename_buf[128];
-    snprintf(filename_buf, 128, "v_%d.dat", args.vec_id); // XXX: function to get vector filename
+    snprintf(filename_buf, 128, "v_%d.dat", args.vec_id); // TODO: function to get vector filename
     fp = fopen(filename_buf, "wb");
     char buffer[1024];
     char line_buffer[32];
@@ -352,7 +344,7 @@ int *send_vec_1_svc(copy_vector_args copy_args, struct svc_req *req)
 {
     CLIENT *cl = clnt_create(copy_args.destination_addr, TWO_PHASE_COMMIT_VEC,
         TPC_COMMIT_VEC_V1, "tcp");
-    commit_vec_args args;// = (commit_vec_args *) malloc(sizeof(commit_vec_args));
+    commit_vec_args args;
     args.vec_id = copy_args.vec_id;
     query_result *qres = get_vector(copy_args.vec_id);
     memcpy(&args.vector, &qres->vector, sizeof(qres->vector));
