@@ -34,6 +34,7 @@ print("IDs: {0} City Names: {1} Codes: {2} Districts: {3} Pops: {4}".format(len(
 # we don't need to include IDs in the bitmap since that's just the row number
 vector_len = max([len(ids), len(cities), len(codes), len(districts), len(pops)])
 city_vectors = [[0 for i in range(vector_len)] for j in range(len(cities))]
+
 city_list = sorted(list(cities)) # sorting needed to get consistent vector ID's for each city
 # create city vectors
 for tup in tuples:

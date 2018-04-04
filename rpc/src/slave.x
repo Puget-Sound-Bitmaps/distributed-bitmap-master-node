@@ -97,7 +97,7 @@ struct copy_vector_args {
 
 program COPY_OVER_VECTOR {
     version COPY_OVER_VECTOR_V1 {
-        /* tell this machien to hand the vector with given id to the one at
+        /* tell this slave to hand the vector with given id to the one at
          * the given address */
         int SEND_VEC(copy_vector_args) = 1;
     } = 1;

@@ -59,7 +59,7 @@ cache_id *ring_get_machines_for_vector(rbt_ptr t, unsigned int vec_id)
 {
     // ideally this should be a for-loop
     node_ptr n1 = succ(t, hash(vec_id));
-    node_ptr n2 = succ(t, n1);
+    node_ptr n2 = succ(t, hash(vec_id + 1));
     cache_id *res = (cache_id *) malloc(sizeof(cache_id) * replication_factor);
     res[0] = n1->cid;
     res[1] = n2->cid;
@@ -428,7 +428,7 @@ uint64_t hash(unsigned long key)
     }
     else { // couldn't find python module, use C
         const unsigned char ibuf[256];
-        sprintf((char *) ibuf, "%d", key);
+        sprintf((char *) ibuf, "%lu", key);
         unsigned char obuf[256];
         SHA256(ibuf, strlen((const char *)ibuf), obuf);
         int i;

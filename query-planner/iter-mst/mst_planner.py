@@ -34,6 +34,8 @@ EXTRA_LOAD = 1
 # number in a file, and parse the adjacency matrix from it
 adjacency_matrix = [[1 if i != j else 0 for i in range(num_machines)] for j in range(num_machines)]
 
+# TODO could also return the load on all the slaves as a point of comparison
+
 #machines = [i for i in range(num_machines)] # XXX: a test example
 # You don't need to visit every machine given in the query. First, optimize on the first machine
 # given in the tuple, then use the higher-numbered one, and alternate.

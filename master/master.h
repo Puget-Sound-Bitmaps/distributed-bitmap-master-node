@@ -41,5 +41,8 @@ unsigned int *get_machines_for_vector(unsigned int);
 int send_vector(slave *, vec_id_t, slave*);
 void reallocate(void);
 int starfish(range_query_contents);
+int get_new_slave_id(void);
+slave *new_slave(char *address);
+int compare_machine_vec_tuple(const void *, const void *);
 
 #endif /* MASTER_H */

@@ -32,37 +32,7 @@ rbt_ptr chash_table;
 int *partition_scale_1, *partition_scale_2; // partitions and backups
 unsigned int num_keys; /* e.g., value of largest known key, plus 1 */
 
-/**
- * Comparator for machine-vector tuples to sort in ascending order of machine ID.
- * Source: https://en.wikipedia.org/wiki/Qsort
- */
-int compare_machine_vec_tuple(const void *p, const void *q) {
-    unsigned int x = **((const unsigned int **)p);
-    unsigned int y = **((const unsigned int **)q);
-
-    if (x < y)
-        return -1;
-    else if (x > y)
-        return 1;
-
-    return 0;
-}
-
-/* Ring consistent hashing variables */
-
-int get_new_slave_id(void)
-{
-    return slave_id_counter++;
-}
-
-slave *new_slave(char *address)
-{
-    slave *s = (slave *) malloc(sizeof(slave));
-    s->id = get_new_slave_id();
-    memcpy(s->address, address, strlen(address));
-    s->is_alive = true;
-    return s;
-}
+extern unsigned int max_vector_len;
 
 /**
  * Master Process
@@ -74,7 +44,7 @@ int main(int argc, char *argv[])
     // XXX: running with defaults for now (r = 3, and hardcoded slave addresses)
     /*
     if (argc < 3) {
-        printf("Usage: -p partition-type [-k num_keys] [-r repl_factor] -s slave_addr1 [... slave_addrn]\n");
+        printf("Usage: -p partition_type -ml max_vector_len [-k num_keys] [-r repl_factor] -s slave_addr1 [... slave_addrn]\n");
         return 1;
     }
     */
@@ -384,6 +354,38 @@ unsigned int *get_machines_for_vector(vec_id_t vec_id)
             return NULL;
         }
     }
+}
+
+/**
+ * Comparator for machine-vector tuples to sort in ascending order of machine ID.
+ * Source: https://en.wikipedia.org/wiki/Qsort
+ */
+int compare_machine_vec_tuple(const void *p, const void *q) {
+    unsigned int x = **((const unsigned int **)p);
+    unsigned int y = **((const unsigned int **)q);
+
+    if (x < y)
+        return -1;
+    else if (x > y)
+        return 1;
+
+    return 0;
+}
+
+/* Ring consistent hashing variables */
+
+int get_new_slave_id(void)
+{
+    return slave_id_counter++;
+}
+
+slave *new_slave(char *address)
+{
+    slave *s = (slave *) malloc(sizeof(slave));
+    s->id = get_new_slave_id();
+    memcpy(s->address, address, strlen(address));
+    s->is_alive = true;
+    return s;
 }
 
 void sigint_handler(int sig)

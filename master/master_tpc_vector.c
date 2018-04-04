@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "tpc_master.h"
 #include "../rpc/vote.h"
 #include "../rpc/gen/slave.h"
@@ -133,10 +134,10 @@ int setup_slave(slave *slv)
     init_slave_args *args = (init_slave_args *) malloc(sizeof(init_slave_args));
     args->machine_name = slv->address;
     args->slave_id = slv->id;
-    int res = init_slave_1(*args, cl);
+    int *res = init_slave_1(*args, cl);
     free(args);
     clnt_destroy(cl);
-    if (res) {
+    if (*res) {
         printf("Failed to setup slave\n");
         return 1;
     }
@@ -156,8 +157,8 @@ int is_alive(char *address)
     tv.tv_sec = 1; // TODO: it is important to come up with a reasonable value for this!
     tv.tv_usec = 0;
     clnt_control(cl, CLSET_TIMEOUT, &tv);
-    int res = stayin_alive_1(0, cl);
-    if (res) {
+    int *res = stayin_alive_1(0, cl);
+    if (*res) {
         return 1;
     }
     clnt_destroy(cl);

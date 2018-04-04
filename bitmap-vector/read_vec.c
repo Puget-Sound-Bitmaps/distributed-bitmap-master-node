@@ -5,7 +5,8 @@
 #include "read_vec.h"
 
 /**
- * Reads up to 128 lines of a vector written at the file in the given path.
+ * Reads up to max_vector_len (defined in master.c) lines of a vector written
+ * at the file in the given path.
  * If no such file exists, returns NULL.
  */
 vec_t *read_vector(char *path)
