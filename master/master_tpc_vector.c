@@ -34,7 +34,7 @@ int commit_vector(vec_id_t vec_id, vec_t vector, slave *slaves[], int num_slaves
     for (i = 0; i < num_slaves; i++) {
         //printf("pthread create %s\n", slaves[i]);
         pthread_create(&tids[i], NULL, get_commit_resp,
-            (void *)slaves[i]->address);
+            (void *) slaves[i]->address);
     }
 
     for (i = 0; i < num_slaves; i++) {
