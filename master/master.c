@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
     }
     */
     /* Connect to message queue. */
-    printf("inside master\n");
     partition_t = RING_CH;
+    query_plan_t = ITER_PRIM;
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
     /* Container for messages. */
     struct msgbuf *request;
@@ -66,22 +66,23 @@ int main(int argc, char *argv[])
     // index in slave list will be the machine ID (0 is master)
     slavelist = (slave_ll *) malloc(sizeof(slave_ll));
     slave_ll *head = slavelist;
+    if (num_slaves == 1) replication_factor = 1;
     int i;
     for (i = 0; i < num_slaves; i++) {
-        printf("Trying to make a slave\n");
         slave *s = new_slave(SLAVE_ADDR[i]); // TODO: when we use CLI args, change this array
-        printf("Setting up\n");
         if (setup_slave(s)) { // could not connect
-            printf("MASTER: Could not register machine %s",
+            printf("MASTER: Could not register machine %s\n",
                 SLAVE_ADDR[i]);
             // dealloc(slavelist)
-            return EXIT_FAILURE;
+            //exit(1);
+            //return EXIT_FAILURE;
             // s->is_alive = false;
             // dead_slave = s;
             // num_living_slaves--;
         }
         else {
             slavelist->slave_node = s;
+            printf("Added slave %s\n", SLAVE_ADDR[i]);
             /* if there is another slave to add to the linked-list,
              * allocate a node for it */
             if (i < num_slaves - 1) {
@@ -153,21 +154,22 @@ int main(int argc, char *argv[])
             if (request->mtype == mtype_put) {
                 slave *commit_slaves[replication_factor];
                 unsigned int *slave_ids =
-                    get_machines_for_vector(request->vector.vec_id);
+                    get_machines_for_vector(request->vector.vec_id, true);
                 slave_ll *head = slavelist;
                 int cs_index = 0;
-                for (i = 0; i < num_slaves; i++) {
+                while (head != NULL) {
                     if (head->slave_node->id == slave_ids[0] ||
                         head->slave_node->id == slave_ids[1])
                         commit_slaves[cs_index++] = head->slave_node;
-                    if (cs_index == replication_factor - 1) break;
+                    if (cs_index == replication_factor) break;
                     head = head->next;
                 }
                 int commit_res = commit_vector(request->vector.vec_id, request->vector.vec,
-                    commit_slaves, num_slaves);
-                if (commit_res)
+                    commit_slaves, replication_factor);
+                if (commit_res) {
                     heartbeat();
-                puts("finished put");
+
+                }
             }
             else if (request->mtype == mtype_range_query) {
                 range_query_contents contents = request->range_query;
@@ -177,13 +179,10 @@ int main(int argc, char *argv[])
                             heartbeat();
                         break;
                     }
-                    case UNISTAR: {
-                        break;
-                    }
-                    case MULTISTAR: {
-                        break;
-                    }
+                    case UNISTAR:
+                    case MULTISTAR:
                     case ITER_PRIM: {
+                        init_btree_range_query(contents);
                         break;
                     }
                 }
@@ -204,6 +203,8 @@ int main(int argc, char *argv[])
     }
 
 }
+
+
 
 int starfish(range_query_contents contents)
 {
@@ -231,11 +232,7 @@ int starfish(range_query_contents contents)
         unsigned int **machine_vec_ptrs = (unsigned int **)
             malloc(sizeof(int *) * (range[1] - range[0] + 1));
         for (j = range[0]; j <= range[1]; j++) {
-            unsigned int *tuple = (unsigned int *)
-                malloc(sizeof(unsigned int) * 2);
-
-            tuple[0] = get_machines_for_vector(j)[0];
-            tuple[1] = j;
+            unsigned int *tuple = get_machines_for_vector(j, false);
             machine_vec_ptrs[j - range[0]] = tuple;
         }
 
@@ -276,7 +273,7 @@ int heartbeat()
         if (!is_alive(addr)) {
             printf("Machine %s failed\n", addr);
             remove_slave(id);
-            if (num_slaves) {
+            if (num_slaves == 0) {
                 puts("MASTER: there are no more slaves");
                 return 1;
             }
@@ -303,6 +300,7 @@ int remove_slave(unsigned int slave_id)
     /* ...and just remove it (Torvalds-style) */
     *head = (*head)->next;
     num_slaves--;
+    if (num_slaves == 1) replication_factor = 1;
     return EXIT_SUCCESS;
 }
 
@@ -355,29 +353,32 @@ void reallocate()
 /**
  * Returns replication_factor (currently, hard at 2)-tuple of vectors such
  * that t = (m1, m2) and m1 != m2 if there at least 2 slaves available.
+ * If this is a *new* vector, updating should be true, false otherwise.
  */
-unsigned int *get_machines_for_vector(vec_id_t vec_id)
+unsigned int *get_machines_for_vector(vec_id_t vec_id, bool updating)
 {
     switch (partition_t) {
         case RING_CH: {
             unsigned int *tr = ring_get_machines_for_vector(chash_table, vec_id);
-            // update this slave's primary vectors
-            slave_ll *head = slavelist;
-            while (head->slave_node->id != tr[0]) head = head->next;
-            slave *slv = head->slave_node;
-            // update this slave's primary vector list
-            if (slv->primary_vector_head == NULL) { /* insert it at the head and tail */
-                slv->primary_vector_head = (slave_vector *) malloc(sizeof(slave_vector));
-                slv->primary_vector_head->id = vec_id;
-                slv->primary_vector_head->next = NULL;
-                slv->primary_vector_tail = slv->primary_vector_tail;
-            }
-            else { /* insert it at the tail */
-                slave_vector *vec = (slave_vector *) malloc(sizeof(slave_vector));
-                slv->primary_vector_tail->next = vec;
-                slv->primary_vector_tail = vec;
-                vec->id = vec_id;
-                vec->next = NULL;
+            if (updating) {
+                // update this slave's primary vectors
+                slave_ll *head = slavelist;
+                while (head->slave_node->id != tr[0]) head = head->next;
+                slave *slv = head->slave_node;
+                // update this slave's primary vector list
+                if (slv->primary_vector_head == NULL) { /* insert it at the head and tail */
+                    slv->primary_vector_head = (slave_vector *) malloc(sizeof(slave_vector));
+                    slv->primary_vector_head->id = vec_id;
+                    slv->primary_vector_head->next = NULL;
+                    slv->primary_vector_tail = slv->primary_vector_head;
+                }
+                else { /* insert it at the tail */
+                    slave_vector *vec = (slave_vector *) malloc(sizeof(slave_vector));
+                    slv->primary_vector_tail->next = vec;
+                    slv->primary_vector_tail = vec;
+                    vec->id = vec_id;
+                    vec->next = NULL;
+                }
             }
             return tr;
         }

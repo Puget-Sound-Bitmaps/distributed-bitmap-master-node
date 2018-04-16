@@ -2,7 +2,6 @@
 #include "../ipc/messages.h"
 #include "../types/types.h"
 #include "../bitmap-vector/read_vec.h"
-//#include "../../bitmap-engine/BitmapEngine/src/wah/WAHCompressor.h"
 
 #include <errno.h>
 #include <stdbool.h>
@@ -79,6 +78,11 @@ int main(int argc, char *argv[])
 
     /* Create message queue. */
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
+
+    /* Go to sleep for a bit, to wait for everything to start */
+    //puts("DBMS sleeping");
+    //sleep(10); // XXX empirically determined?
+    //puts("DBMS: woke up");
 
     /* TESTS */
     int test_no = atoi(argv[1]);
