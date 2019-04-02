@@ -22,14 +22,14 @@ struct rq_pipe_args {
 struct query_result {
     unsigned hyper int vector<>;
     unsigned int exit_code;
-    string error_message<128>;
+    string error_message<>;
 };
 
 program REMOTE_QUERY_PIPE {
     version REMOTE_QUERY_PIPE_V1 {
         query_result RQ_PIPE(rq_pipe_args) = 1;
     } = 1;
-} = 0x20;
+} = 0x10;
 
 /**
  *  Root Query
@@ -86,7 +86,7 @@ program AYA {
 
 struct copy_vector_args {
     unsigned int vec_id;
-    string destination_addr<32>;
+    unsigned int destination_no;
 };
 
 program COPY_OVER_VECTOR {

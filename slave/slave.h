@@ -1,8 +1,12 @@
-char *machine_failure_msg(char *);
-unsigned int slave_id;
+#ifndef SLAVE_H
+#define SLAVE_H
 
-char *machine_failure_msg(char *);
+#include "../types/types.h"
 
-query_result *get_vector(u_int);
+#define SLAVE_DEBUG false
+#define ERRMESS_DEBUG false
+#define SLAVE_ERR true
+#define TIMEOUT_DEBUG false
+#define TIMEOUT 5
 
-extern char **slave_addresses;
+#endif

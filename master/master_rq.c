@@ -17,7 +17,7 @@
 
 char **slave_addresses;
 
-#define TIME_TO_VOTE 1 // XXX make this shared between master/slave (general timeout)
+#define TIME_TO_VOTE 1
 
 query_result *rq_range_root(rq_range_root_args *query);
 
@@ -31,9 +31,15 @@ query_result **results;
 
 int kill_random_slave(int num_slaves) {
     srand(time(NULL));
-    int death_index = rand() % num_slaves;
-    printf("Killing slave %d\n", death_index);
-    CLIENT *cl = clnt_create(slave_addresses[death_index],
+    int death_index;
+    death_index = rand() % num_slaves;
+    return kill_slave(death_index);
+}
+
+int kill_slave(u_int slave_id) {
+    if (M_DEBUG)
+        printf("Killing slave %u\n", slave_id);
+    CLIENT *cl = clnt_create(slave_addresses[slave_id],
         KILL_SLAVE, KILL_SLAVE_V1, "tcp");
     if (cl == NULL) return -1;
     int *res = kill_order_1(0, cl);
@@ -50,7 +56,8 @@ int
 init_range_query(unsigned int *range_array, int num_ranges,
     char *ops, int array_len)
 {
-    rq_range_root_args *root = (rq_range_root_args *) malloc(sizeof(rq_range_root_args));
+    rq_range_root_args *root = (rq_range_root_args *)
+        malloc(sizeof(rq_range_root_args));
     root->range_array.range_array_val = range_array;
     root->range_array.range_array_len = array_len;
     root->num_ranges = num_ranges;
@@ -61,7 +68,7 @@ init_range_query(unsigned int *range_array, int num_ranges,
 
     free(root);
     free(range_array);
-    return EXIT_SUCCESS;
+    return res->exit_code;
 }
 
 query_result *rq_range_root(rq_range_root_args *query)
@@ -106,12 +113,14 @@ query_result *rq_range_root(rq_range_root_args *query)
 
     /*
      * Conclude the query. Join each contributing thread,
-     * and in doing so, report error if there is one, or report largest vector size
+     * and in doing so, report error if there is one, or report largest vector
+     * size.
      */
     u_int result_vector_len = 0, largest_vector_len = 0;
     for (i = 0; i < num_threads; i++) {
         /* assuming a single point of failure, report on the failed slave */
         if (results[i]->exit_code != EXIT_SUCCESS) {
+            printf("%s\n", results[i]->error_message);
             return results[i];
         }
         largest_vector_len = max(largest_vector_len,
@@ -127,23 +136,22 @@ query_result *rq_range_root(rq_range_root_args *query)
         return res;
     }
 
-    u_int64_t *result_vector = (u_int64_t *)
-        malloc(sizeof(u_int64_t) * largest_vector_len);
+    u_int64_t *result_vector;
+    u_int64_t a[largest_vector_len];
+    result_vector = a;
     memset(result_vector, 0, largest_vector_len * sizeof(u_int64_t));
     /* AND the first 2 vectors together */
-    result_vector_len = AND_WAH(result_vector,
+    result_vector_len = AND_WAH(result_vector, largest_vector_len,
         results[0]->vector.vector_val, results[0]->vector.vector_len,
         results[1]->vector.vector_val, results[1]->vector.vector_len) + 1;
 
     /* AND the subsequent vectors together */
     for (i = 2; i < num_threads; i++) {
-        u_int64_t *new_result_vector = (u_int64_t *)
-            malloc(sizeof(u_int64_t) * largest_vector_len);
+        u_int64_t new_result_vector[largest_vector_len];
         memset(new_result_vector, 0, sizeof(u_int64_t) * largest_vector_len);
-        result_vector_len = AND_WAH(new_result_vector, result_vector,
-            result_vector_len, results[i]->vector.vector_val,
+        result_vector_len = AND_WAH(new_result_vector, largest_vector_len,
+            result_vector, result_vector_len, results[i]->vector.vector_val,
             results[i]->vector.vector_len) + 1;
-        free(result_vector);
         result_vector = new_result_vector;
     }
 
@@ -154,21 +162,8 @@ query_result *rq_range_root(rq_range_root_args *query)
     res->vector.vector_val = arr; // XXX is this actually necessary
     memcpy(res->vector.vector_val, result_vector,
         result_vector_len * sizeof(u_int64_t));
-    free(result_vector);
     res->vector.vector_len = result_vector_len;
     return res;
-}
-
-/**
- * Local helper function, returning a no-response message from the machine
- * of the given name.
- */
-char *machine_failure_msg(char *machine_name)
-{
-    char *error_message = (char *) malloc(sizeof(char) * 64);
-    snprintf(error_message, 64,
-        "Error: No response from machine %s\n", machine_name);
-    return error_message;
 }
 
 void *init_coordinator_thread(void *coord_args) {
@@ -179,19 +174,23 @@ void *init_coordinator_thread(void *coord_args) {
 
     if (clnt == NULL) {
         clnt_pcreateerror(slave_addresses[args->args->machine_no]);
+        puts("Failed to create client");
+        return (void *) EXIT_FAILURE;
     }
     /* give the request a time-to-live */
-    struct timeval tv;
-    tv.tv_sec = TIME_TO_VOTE;
-    tv.tv_usec = 0;
-    clnt_control(clnt, CLSET_TIMEOUT, &tv);
+    // struct timeval tv;
+    // tv.tv_sec = TIME_TO_VOTE * 5;
+    // tv.tv_usec = 0;
+    // clnt_control(clnt, CLSET_TIMEOUT, &tv);
     query_result *res = rq_pipe_1(*(args->args), clnt);
     if (res == NULL) {
         clnt_perror(clnt, "call failed: ");
         /* Report that this machine failed */
         res = (query_result *) malloc(sizeof(query_result));
         res->exit_code = EXIT_FAILURE;
-        res->error_message = machine_failure_msg(slave_addresses[args->args->machine_no]);
+        char buf[64];
+        snprintf(buf, 64, "Error: No response from slave %u",
+            args->args->machine_no);
     }
     results[args->query_result_index] = res;
     clnt_destroy(clnt);

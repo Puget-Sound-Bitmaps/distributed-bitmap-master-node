@@ -2,7 +2,11 @@
 #include "../ipc/messages.h"
 #include "../types/types.h"
 #include "../bitmap-vector/read_vec.h"
+#include "../experiments/exper.h"
 #include "../experiments/fault_tolerance.h"
+#include "../experiments/load_vec.h"
+#include "../util/ipc_util.h"
+
 
 #include <errno.h>
 #include <stdbool.h>
@@ -11,11 +15,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <math.h>
 
 #include <sys/ipc.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#define DBMS_DEBUG true
 
 void
 test_put_vec(int queue_id, int vec_id, u_int64_t *vector, u_int vector_len)
@@ -27,24 +34,25 @@ test_put_vec(int queue_id, int vec_id, u_int64_t *vector, u_int vector_len)
 }
 
 // XXX: deprecate change to: test_put_vec, of any length
-void test_put_vec_len_1(int queue_id, int vec_id, unsigned long long vec) {
+void test_put_vec_len_1(int queue_id, int vec_id, u_int64_t vec) {
     vec_t *v = (vec_t *)malloc(sizeof(vec_t));
-    unsigned long long varr[] = {vec};
-    memcpy(v->vector, varr, sizeof(unsigned long long));
+    u_int64_t varr[] = {vec};
+    memcpy(v->vector, varr, sizeof(u_int64_t));
     v->vector[0] = vec;
     v->vector_length = 1;
     put_vector(queue_id, vec_id, v);
 }
 
-void test_put_vec_len_2(int queue_id, int vec_id, unsigned long long vec, unsigned long long vec2) {
+void test_put_vec_len_2(int queue_id, int vec_id, u_int64_t vec, u_int64_t vec2) {
     vec_t *v = (vec_t *)malloc(sizeof(vec_t));
-    unsigned long long varr[] = {vec, vec2};
-    memcpy(v->vector, varr, sizeof(unsigned long long) * 2);
+    u_int64_t varr[] = {vec, vec2};
+    memcpy(v->vector, varr, sizeof(u_int64_t) * 2);
     v->vector[0] = vec;
     v->vector[1] = vec2;
     v->vector_length = 2;
     put_vector(queue_id, vec_id, v);
 }
+
 /**
  * Database Management System (DBMS)
  *
@@ -61,7 +69,7 @@ int main(int argc, char *argv[])
 
     bool master_exists = false;
     pid_t master_pid = -1;
-    if (!master_exists) {
+    if (!master_exists && EXPERIMENT_TYPE != L_VECTORS) {
         const char *master_args[3];
         switch (master_pid = fork()) {
             case -1:
@@ -84,9 +92,8 @@ int main(int argc, char *argv[])
     int msq_id = msgget(MSQ_KEY, MSQ_PERMISSIONS | IPC_CREAT);
 
     /* TESTS */
-    int test_no = atoi(argv[1]);
+    int test_no = atoi(argv[1]), status = 0;
 
-    int return_val = EXIT_SUCCESS;
     if (test_no == BASIC_TEST) {
 
         /* put some vectors */
@@ -133,40 +140,101 @@ int main(int argc, char *argv[])
     }
     else if (test_no == TPCORG_C_TEST) {
 
-        int num_vecs = FT_NUM_VEC, i;
-        char buf[64];
-        for (i = 0; i < num_vecs; i++) {
-            snprintf(buf, 64, "../tst_data/tpc/vec/v_%d.dat", i);
-            put_vector(msq_id, i, read_vector(buf));
+        switch (EXPERIMENT_TYPE) {
+            case L_VECTORS: {
+                char timestamp[32];
+                getcurr_timestamp(timestamp, sizeof(timestamp));
+                char outfile_nmbuf[36];
+                snprintf(outfile_nmbuf, 36, "%s-%s.csv", LV_OUTFILE, timestamp);
+                FILE *fp = fopen(outfile_nmbuf, "w");
+                fprintf(fp, "vecs,time,log10\n");
+                char buf[64];
+                int i, j, num_vecs = LV_START;
+                for (i = 0; i < LV_NUM_TRIALS; i++) {
+                    // TODO: try killing master process here, to ensure compatibility
+                    // with other experiments, w.out having to guard other
+                    // fork/wait statements
+                    if ((master_pid = fork())) {
+                        struct timespec start, end;
+                        clock_gettime(CLOCK_REALTIME, &start);
+                        for (j = 0; j < num_vecs; j++) {
+                            snprintf(buf, 64, "../tst_data/tpc/vec1k/v_%d.dat", j);
+                            put_vector(msq_id, j, read_vector(buf));
+                        }
+                        clock_gettime(CLOCK_REALTIME, &end);
+                        u_int64_t dt = (end.tv_sec - start.tv_sec) * 1000000
+                            + (end.tv_nsec - start.tv_nsec) / 1000;
+                        fprintf(fp, "%d,%lu,%f\n", num_vecs, dt, log10((double) dt));
+                    }
+                    else {
+                        char *master_args[3];
+                        master_args[0] = MASTER_EXECUTABLE;
+                        master_args[1] = REPLICATION_FACTOR;
+                        master_args[2] = NULL;
+                        exit(execv(MASTER_EXECUTABLE, master_args));
+                    }
+                    num_vecs *= LV_MULTIPLIER;
+                    master_exit(msq_id);
+                    waitpid(master_pid, &status, WNOHANG);
+                }
+                fclose(fp);
+                break;
+            }
+            case F_TOL: {
+                int num_vecs = FT_NUM_VEC, i;
+                char buf[64];
+                for (i = 0; i < num_vecs; i++) {
+                    snprintf(buf, 64, "../tst_data/tpc/vec1k/v_%d.dat", i);
+                    put_vector(msq_id, i, read_vector(buf));
+                }
+                /* read queries */
+                FILE *fp;
+                fp = fopen("../tst_data/tpc/qs/30k-rand-query_lt128.dat", "r");
+                //fp = fopen("../tst_data/tpc/qs/query_lt128.dat", "r");
+                if (fp == NULL) {
+                    puts("Error: could not open test file");
+                    return 1;
+                }
+                char *line = NULL;
+                size_t n = 0;
+                int qnum = 0;
+                while (getline(&line, &n, fp) != -1 && qnum++ < FT_NUM_QUERIES) {
+                    //if (DBMS_DEBUG) printf("DBMS: %s\n", line);
+                    range_query(msq_id, line);
+                }
+                break;
+            }
+            default:
+                break;
         }
-        /* read queries */
-        FILE *fp = fopen("../tst_data/tpc/qs/query_lt128.shuffled.dat", "r");
-        if (fp == NULL) {
-            puts("Error: could not open test file");
-            return 1;
-        }
-        char *line = NULL;
-        size_t n = 0;
-        int qnum = 0;
-        while (getline(&line, &n, fp) != -1 && qnum++ < FT_NUM_QUERIES) {
-            range_query(msq_id, line);
-        }
-    }
-    else {
-        return_val = 1;
-    }
 
+    }
 
     /* CLEANING UP */
     int master_result = 0;
     /* Reap master. */
-    wait(&master_result);
+
+    // TODO: fix this
+    if (EXPERIMENT_TYPE == L_VECTORS)
+        waitpid(master_pid, &status, WNOHANG);
+    else
+        wait(&master_result);
+
     puts("DBMS: Master process killed, closing");
 
     /* Destroy message queue. */
     msgctl(msq_id, IPC_RMID, NULL);
 
-    return return_val;
+    return EXIT_SUCCESS;
+}
+
+int master_exit(int qid)
+{
+    msgbuf *buf = (msgbuf *) malloc(sizeof(msgbuf));
+    buf->mtype = mtype_kill_master;
+    msgsnd(qid, buf, sizeof(msgbuf), 0);
+    free(buf);
+    return 0;
 }
 
 int put_vector(int queue_id, vec_id_t vec_id, vec_t *vec)
@@ -179,7 +247,8 @@ int put_vector(int queue_id, vec_id_t vec_id, vec_t *vec)
     put->vector = *av;
 
     msgsnd(queue_id, put, sizeof(msgbuf), 0);
-
+    free(av);
+    free(put);
     return EXIT_SUCCESS;
 }
 

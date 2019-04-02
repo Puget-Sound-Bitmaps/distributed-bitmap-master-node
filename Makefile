@@ -20,14 +20,18 @@ $(BIN)/tree_map.o:
 	@echo "Compiling RPC modules"
 	@cd rpc && make
 
-.master: .slave .rpc .bitmap-vector $(BIN)/tree_map.o .ds-util
+.util:
+	@echo "Compiling utils"
+	@$(CC) -c -o $(BIN)/util.o util/ipc_util.c
+
+.master: .slave .rpc .bitmap-vector $(BIN)/tree_map.o .ds-util .util
 	@echo "Compiling Master"
 	@$(CC) -c -o $(BIN)/master_rq.o \
 		master/master_rq.c
 	@$(CC) -c -o $(BIN)/master_tpc.o \
 		master/master_tpc_vector.c
 	@echo "Compiling master main"
-	@cp query-planner/iter-mst/mst_planner.py $(BIN) # TODO Jahrme copy remaining query planners
+	@cp query-planner/iter-mst/mst_planner.py $(BIN)
 	@$(CC) -o $(BIN)/master \
 		$(RPC_BIN)/slave_clnt.o \
 		$(RPC_BIN)/slave_xdr.o \
@@ -38,6 +42,7 @@ $(BIN)/tree_map.o:
 		$(BIN)/SegUtil.o \
 		$(BIN)/read_vec.o \
 		$(BIN)/slavelist.o \
+		$(BIN)/util.o \
 		master/master.c \
 		-lssl -lpthread -lcrypto -lm #-lpython2.7 # TODO: make `MASTER_FLAGS` target
 
@@ -75,11 +80,12 @@ master_cent: .master_cent
 		slave/slave.c \
 		-lm
 
-.dbms: .bitmap-vector
+.dbms: .bitmap-vector .util
 	@echo "Compiling DBMS"
 	@$(CC) -o $(BIN)/dbms \
 		$(BIN)/read_vec.o \
-		dbms/dbms.c
+		$(BIN)/util.o \
+		dbms/dbms.c -lm
 
 .bitmap-vector:
 	@echo "Compiling bitmap vector utilities"
@@ -104,12 +110,10 @@ basic_test: all
 # Voting data test
 vd_test: all
 	@echo "Creating test data..."
-	@cd tst_data/rep-votes && python3 convert_voting_data.py
+	@cd tst_data/rep-votes && python convert_voting_data.py
 	@cd $(BIN) && ./dbms 1
 
 # TPC Benchmarking Data Test
 tpc_test: all
-	@cd tst_data/tpc/qs && python3 qshuffle.py query_lt128.dat
 	@cd $(BIN) && ./dbms 3
-	@rm tst_data/tpc/qs/query_lt128.shuffled.dat
 	@echo "tpc-c test complete"
